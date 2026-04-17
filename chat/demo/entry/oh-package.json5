@@ -17,7 +17,8 @@
     "chatuikit": "file:../../uikit",
     "dayjs": "^1.11.7",
     "pako": "^2.1.0",
-    "@ohos/crypto-js": "^2.0.1"
+    "@ohos/crypto-js": "^2.0.1",
+    "tuicallkit": "file:../../call"
   }
 }
 

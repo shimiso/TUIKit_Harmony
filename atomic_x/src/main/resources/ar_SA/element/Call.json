@@ -1,0 +1,152 @@
+{
+  "string": [
+    {
+      "name": "call_connected",
+      "value": "متصل"
+    },
+    {
+      "name": "call_waiting_for_acceptance",
+      "value": "في انتظار قبول الطرف الآخر"
+    },
+    {
+      "name": "call_invited_to_audio",
+      "value": "دعوة لمكالمة صوتية"
+    },
+    {
+      "name": "call_invited_to_video",
+      "value": "دعوة لمكالمة فيديو"
+    },
+    {
+      "name": "call_invited_to_group",
+      "value": "دعوة لمكالمة جماعية"
+    },
+    {
+      "name": "call_hangup",
+      "value": "إنهاء المكالمة"
+    },
+    {
+      "name": "call_accept",
+      "value": "قبول"
+    },
+    {
+      "name": "call_switch_camera",
+      "value": "تبديل"
+    },
+    {
+      "name": "call_mic_on",
+      "value": "الميكروفون مفعل"
+    },
+    {
+      "name": "call_mic_off",
+      "value": "الميكروفون معطل"
+    },
+    {
+      "name": "call_speaker_on",
+      "value": "مكبر الصوت مفعل"
+    },
+    {
+      "name": "call_speaker_off",
+      "value": "مكبر الصوت معطل"
+    },
+    {
+      "name": "call_camera_on",
+      "value": "الكاميرا مفعلة"
+    },
+    {
+      "name": "call_camera_off",
+      "value": "الكاميرا معطلة"
+    },
+    {
+      "name": "call_self_network_low",
+      "value": "جودة شبكتك ضعيفة"
+    },
+    {
+      "name": "call_other_network_low",
+      "value": "جودة شبكة الطرف الآخر ضعيفة"
+    },
+    {
+      "name": "call_they_are_also_there",
+      "value": "هم أيضاً هنا"
+    },
+    {
+      "name": "call_reject_caller",
+      "value": "رفض الطرف الآخر"
+    },
+    {
+      "name": "call_reject_callee",
+      "value": "تم الرفض"
+    },
+    {
+      "name": "call_cancel_caller",
+      "value": "تم الإلغاء"
+    },
+    {
+      "name": "call_cancel_callee",
+      "value": "ألغى الطرف الآخر"
+    },
+    {
+      "name": "call_timeout_caller",
+      "value": "لا رد من الطرف الآخر"
+    },
+    {
+      "name": "call_timeout_callee",
+      "value": "انتهت مهلة الرد"
+    },
+    {
+      "name": "call_line_busy_caller",
+      "value": "الطرف الآخر مشغول"
+    },
+    {
+      "name": "call_line_busy_callee",
+      "value": "مشغول، لم يتم الرد"
+    },
+    {
+      "name": "call_start",
+      "value": "بدء مكالمة"
+    },
+    {
+      "name": "call_accept_call",
+      "value": "تم الرد"
+    },
+    {
+      "name": "call_stop_tip",
+      "value": "مدة المكالمة:"
+    },
+    {
+      "name": "call_switch_to_audio",
+      "value": "تحويل الفيديو إلى صوتي"
+    },
+    {
+      "name": "call_switch_to_audio_accept",
+      "value": "تأكيد تحويل الفيديو إلى صوتي"
+    },
+    {
+      "name": "call_group_send",
+      "value": "تم بدء مكالمة جماعية"
+    },
+    {
+      "name": "call_group_end",
+      "value": "تم إنهاء المكالمة"
+    },
+    {
+      "name": "call_group_no_answer",
+      "value": "لم يتم الرد"
+    },
+    {
+      "name": "call_group_reject",
+      "value": "رفض مكالمة جماعية"
+    },
+    {
+      "name": "call_group_accept",
+      "value": "قبل المكالمة"
+    },
+    {
+      "name": "call_group_confirm_switch_to_audio",
+      "value": "تأكيد تحويل الفيديو إلى صوتي"
+    },
+    {
+      "name": "call_unknown",
+      "value": "مكالمة غير معروفة"
+    }
+  ]
+}

@@ -79,3 +79,4 @@ export * from './utils/AppBuilderHelper';
 
 export { ContextProvider } from './utils/ContextProvider';
 export { EventBus } from './utils/EventBus';
+export { TUIEventBus, TUIObserver, PublishParams, NotifyParams } from './utils/TUIEventBus';

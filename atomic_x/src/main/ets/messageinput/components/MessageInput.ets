@@ -29,6 +29,8 @@ export struct MessageInput {
   private static readonly VIDEO_FILE_MAX_SIZE = 100 * 1024 * 1024; // 100MB
   conversationID: string = '';
   config?: MessageInputConfigProtocol = undefined;
+  onVoiceCallClick?: () => void;
+  onVideoCallClick?: () => void;
   private effectiveConfig: MessageInputConfigProtocol = new ChatMessageInputConfig();
   dialogController?: CustomDialogController = undefined;
   private richEditorController: RichEditorController = new RichEditorController();
@@ -241,6 +243,32 @@ export struct MessageInput {
           this.selectFile();
         }
       });
+
+    if (this.onVoiceCallClick) {
+      menuItems.push({
+        id: 'voiceCall',
+        text: $r('app.string.menu_voice_call'),
+        icon: $rawfile('messageinput/voice_call_icon.svg'),
+        action: () => {
+          if (this.onVoiceCallClick) {
+            this.onVoiceCallClick();
+          }
+        }
+      });
+    }
+
+    if (this.onVideoCallClick) {
+      menuItems.push({
+        id: 'videoCall',
+        text: $r('app.string.menu_video_call'),
+        icon: $rawfile('messageinput/video_call_icon.svg'),
+        action: () => {
+          if (this.onVideoCallClick) {
+            this.onVideoCallClick();
+          }
+        }
+      });
+    }
 
     // Create dialog controller with menu items
     this.dialogController = new CustomDialogController({
@@ -625,6 +653,32 @@ export struct MessageInput {
         this.selectFile();
       }
     });
+
+    if (this.onVoiceCallClick) {
+      menuItems.push({
+        id: 'voiceCall',
+        text: $r('app.string.menu_voice_call'),
+        icon: $rawfile('messageinput/classic/voice_call_icon.svg'),
+        action: () => {
+          if (this.onVoiceCallClick) {
+            this.onVoiceCallClick();
+          }
+        }
+      });
+    }
+
+    if (this.onVideoCallClick) {
+      menuItems.push({
+        id: 'videoCall',
+        text: $r('app.string.menu_video_call'),
+        icon: $rawfile('messageinput/classic/video_call_icon.svg'),
+        action: () => {
+          if (this.onVideoCallClick) {
+            this.onVideoCallClick();
+          }
+        }
+      });
+    }
 
     return menuItems;
   }

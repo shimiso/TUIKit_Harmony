@@ -99,6 +99,14 @@
     {
       "name": "voice_release_to_send_slide_to_cancel",
       "value": "Release to send, slide up to cancel"
+    },
+    {
+      "name": "menu_voice_call",
+      "value": "Voice Call"
+    },
+    {
+      "name": "menu_video_call",
+      "value": "Video Call"
     }
   ]
 }

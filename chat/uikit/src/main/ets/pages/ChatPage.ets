@@ -1,7 +1,163 @@
-import { MessageInfo } from '@tencentcloud/atomicxcore';
+import { MessageInfo, GroupSettingStore, GroupMemberRole, GroupMember, LoginStore } from '@tencentcloud/atomicxcore';
 import { Avatar, AvatarContentType, AvatarSize, LanguageState, ThemeState } from '@tencentcloud/atomicx';
 import { MessageList, MultiSelectBottomBar, MultiSelectActions } from '@tencentcloud/atomicx';
 import { MessageInput } from '@tencentcloud/atomicx';
+import { TUIEventBus, PublishParams } from '@tencentcloud/atomicx';
+import { CallMediaType } from '@tencentcloud/atomicx';
+import { UserPicker, UserPickerData } from '@tencentcloud/atomicx';
+
+@CustomDialog
+struct GroupMemberPickerDialog {
+  controller: CustomDialogController;
+  @State dataSource: UserPickerData<GroupMember>[] = [];
+  @State isLoading: boolean = true;
+  @State private selectedKeysOrder: string[] = [];
+  @StorageLink('ThemeState') themeState: ThemeState = ThemeState.getInstance();
+  groupID: string = '';
+  onConfirm?: (selectedItems: UserPickerData<GroupMember>[]) => void;
+  private groupSettingStore?: GroupSettingStore;
+  private selectedItems: UserPickerData<GroupMember>[] = [];
+
+  aboutToAppear(): void {
+    this.fetchGroupMembers();
+  }
+
+  private fetchGroupMembers(): void {
+    if (!this.groupID) {
+      this.isLoading = false;
+      return;
+    }
+    this.groupSettingStore = GroupSettingStore.create(this.groupID);
+    this.groupSettingStore.fetchGroupMemberList(GroupMemberRole.ALL)
+      .then(() => {
+        this.updateMembersFromState();
+        this.isLoading = false;
+      })
+      .catch((error: Error) => {
+        console.error('[GroupMemberPickerDialog] Failed to load group members:', error.message);
+        this.isLoading = false;
+      });
+  }
+
+  private updateMembersFromState(): void {
+    if (!this.groupSettingStore) {
+      return;
+    }
+    const currentUserID: string = LoginStore.shared().state.loginUserInfo?.userID ?? '';
+    const members = this.groupSettingStore.state.allMembers;
+    const list: UserPickerData<GroupMember>[] = members
+      .filter((member: GroupMember) => member.userID !== currentUserID)
+      .map((member: GroupMember): UserPickerData<GroupMember> => {
+        const displayName = this.getDisplayName(member);
+        const data: UserPickerData<GroupMember> = {
+          key: member.userID,
+          label: displayName,
+          avatarUrl: member.avatarURL,
+          extraData: member,
+        };
+        return data;
+      });
+    this.dataSource = list;
+  }
+
+  private getDisplayName(member: GroupMember): string {
+    if (member.nameCard && member.nameCard.length > 0) {
+      return member.nameCard;
+    }
+    if (member.nickname && member.nickname.length > 0) {
+      return member.nickname;
+    }
+    return member.userID;
+  }
+
+  private handleConfirmClick(): void {
+    if (this.onConfirm && this.selectedItems.length > 0) {
+      this.onConfirm(this.selectedItems);
+    }
+    this.controller.close();
+  }
+
+  private handleCancelClick(): void {
+    this.controller.close();
+  }
+
+  build() {
+    Column() {
+      if (this.isLoading) {
+        Column() {
+          LoadingProgress()
+            .width(40)
+            .height(40)
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else {
+        Column() {
+          this.TitleBarBuilder()
+          Divider()
+            .height(1)
+            .color(this.themeState.colors.strokeColorSecondary)
+          UserPicker({
+            dataSource: this.dataSource,
+            defaultSelectedItems: [],
+            showNavigationBar: false,
+            showSelectedTags: false,
+            onSelectedChanged: (items: UserPickerData<ESObject>[]) => {
+              this.selectedItems = items as UserPickerData<GroupMember>[];
+              this.selectedKeysOrder = items.map((i: UserPickerData<ESObject>): string => i.key);
+            },
+          })
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .height('100%')
+      }
+    }
+    .width('100%')
+    .height('70%')
+    .backgroundColor(this.themeState.colors.bgColorOperate)
+    .borderRadius({ topLeft: 16, topRight: 16 })
+  }
+
+  @Builder
+  TitleBarBuilder() {
+    Row() {
+      Text($r('app.string.cancel_button'))
+        .fontSize(16)
+        .fontWeight(400)
+        .fontColor(this.themeState.colors.textColorLink)
+        .onClick(() => {
+          this.handleCancelClick();
+        })
+
+      Blank()
+
+      Text($r('app.string.chatsetting_group_members_title'))
+        .fontSize(18)
+        .fontWeight(600)
+        .fontColor(this.themeState.colors.textColorPrimary)
+
+      Blank()
+
+      Text($r('app.string.confirm'))
+        .fontSize(16)
+        .fontWeight(400)
+        .fontColor(this.selectedKeysOrder.length > 0 ?
+        this.themeState.colors.textColorLink :
+        this.themeState.colors.textColorSecondary)
+        .enabled(this.selectedKeysOrder.length > 0)
+        .onClick(() => {
+          this.handleConfirmClick();
+        })
+    }
+    .width('100%')
+    .height(56)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor(this.themeState.colors.bgColorOperate)
+  }
+}
 
 @CustomDialog
 export struct ChatDialog {
@@ -14,6 +170,7 @@ export struct ChatDialog {
   onBack?: () => void;
   onUserClick?: (userID: string) => void;
   onChatHeaderClick?: (conversationID: string) => void;
+  onCallMessageClick?: (userID: string, isVideoCall: boolean) => void;
 
   build() {
     ChatPage({
@@ -54,12 +211,11 @@ export struct ChatPage {
   @State status: string = '';
   @State avatarUrl: string = '';
   @State locateMessage?: MessageInfo = undefined;
-  // Multi-select mode state
   @State isMultiSelectMode: boolean = false;
   @State selectedCount: number = 0;
   private multiSelectActions?: MultiSelectActions = undefined;
-  
-  // External callbacks
+  private groupMemberPickerController?: CustomDialogController;
+
   onBack?: () => void;
   onUserClick?: (userID: string) => void;
   onChatHeaderClick?: (conversationID: string) => void;
@@ -71,6 +227,97 @@ export struct ChatPage {
   aboutToDisappear(): void {
   }
 
+  private isGroupConversation(): boolean {
+    return this.conversationID.startsWith('group_');
+  }
+
+  private getGroupID(): string {
+    if (this.conversationID.startsWith('group_')) {
+      return this.conversationID.substring(6);
+    }
+    return '';
+  }
+
+  private getUserID(): string {
+    if (this.conversationID.startsWith('c2c_')) {
+      return this.conversationID.substring(4);
+    }
+    return '';
+  }
+
+  private onVoiceCallClick(): void {
+    if (this.isGroupConversation()) {
+      const chatGroupId = this.getGroupID();
+      this.showGroupMemberPicker(chatGroupId, CallMediaType.audio);
+    } else {
+      const participantId = this.getUserID();
+      const participantIds: string[] = [participantId];
+      const data: Record<string, Object> = {
+        'participantIds': participantIds,
+        'mediaType': CallMediaType.audio as Object,
+        'chatGroupId': '' as Object,
+        'timeout': 30 as Object,
+      };
+      const params = new PublishParams(false, data);
+      TUIEventBus.getInstance().publish('call.startCall', null, params);
+    }
+  }
+
+  private onVideoCallClick(): void {
+    if (this.isGroupConversation()) {
+      const chatGroupId = this.getGroupID();
+      this.showGroupMemberPicker(chatGroupId, CallMediaType.video);
+    } else {
+      const participantId = this.getUserID();
+      const participantIds: string[] = [participantId];
+      const data: Record<string, Object> = {
+        'participantIds': participantIds,
+        'mediaType': CallMediaType.video as Object,
+        'chatGroupId': '' as Object,
+        'timeout': 30 as Object,
+      };
+      const params = new PublishParams(false, data);
+      TUIEventBus.getInstance().publish('call.startCall', null, params);
+    }
+  }
+
+  private onCallMessageClick(userID: string, isVideoCall: boolean): void {
+    const participantIds: string[] = [userID];
+    const data: Record<string, Object> = {
+      'participantIds': participantIds,
+      'mediaType': (isVideoCall ? CallMediaType.video : CallMediaType.audio) as Object,
+      'chatGroupId': '' as Object,
+      'timeout': 30 as Object,
+    };
+    const params = new PublishParams(false, data);
+    TUIEventBus.getInstance().publish('call.startCall', null, params);
+  }
+
+  private showGroupMemberPicker(chatGroupId: string, mediaType: CallMediaType): void {
+    this.groupMemberPickerController = new CustomDialogController({
+      builder: GroupMemberPickerDialog({
+        groupID: chatGroupId,
+        onConfirm: (selectedItems: UserPickerData<GroupMember>[]) => {
+          if (selectedItems.length > 0) {
+            const participantIds: string[] = selectedItems.map((item: UserPickerData<GroupMember>): string => item.key);
+            const data: Record<string, Object> = {
+              'participantIds': participantIds,
+              'mediaType': mediaType as Object,
+              'chatGroupId': chatGroupId as Object,
+              'timeout': 30 as Object,
+            };
+            const params = new PublishParams(false, data);
+            TUIEventBus.getInstance().publish('call.startCall', null, params);
+          }
+        },
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom,
+      customStyle: true,
+    });
+    this.groupMemberPickerController.open();
+  }
+
   build() {
     Stack() {
       Column() {
@@ -79,13 +326,11 @@ export struct ChatPage {
           conversationID: this.conversationID,
           locateMessage: this.locateMessage,
           onUserClick: (userID: string) => {
-            console.log(`[ChatPage] User avatar clicked: ${userID}`);
             if (this.onUserClick) {
               this.onUserClick(userID);
             }
           },
           onMultiSelectModeChange: (isMultiSelectMode: boolean, selectedCount: number, actions?: MultiSelectActions) => {
-            console.log(`[ChatPage] Multi-select mode changed: ${isMultiSelectMode}, count: ${selectedCount}`);
             this.isMultiSelectMode = isMultiSelectMode;
             this.selectedCount = selectedCount;
             this.multiSelectActions = actions;
@@ -94,7 +339,6 @@ export struct ChatPage {
           .width('100%')
           .layoutWeight(1)
 
-        // Show InputBar or MultiSelectBottomBar based on mode
         if (this.isMultiSelectMode) {
           MultiSelectBottomBar({
             selectedCount: this.selectedCount,
@@ -116,7 +360,13 @@ export struct ChatPage {
           })
         } else {
           MessageInput({
-            conversationID: this.conversationID
+            conversationID: this.conversationID,
+            onVoiceCallClick: () => {
+              this.onVoiceCallClick();
+            },
+            onVideoCallClick: () => {
+              this.onVideoCallClick();
+            },
           })
         }
       }
@@ -134,7 +384,6 @@ export struct ChatPage {
     Column() {
       Row() {
         Row({ space: 8 }) {
-          // Back button
           Image($rawfile("basecomponent/common_back_icon.svg"))
             .scale({
               x: this.languageState.getLayoutDirection() === LayoutDirection.RTL ? -1 : 1,
@@ -150,7 +399,6 @@ export struct ChatPage {
             })
 
           Row({ space: 8 }) {
-            // Avatar
             Avatar({
               content: {
                 type: AvatarContentType.Image,
@@ -183,7 +431,6 @@ export struct ChatPage {
           }
           .layoutWeight(1)
           .onClick(() => {
-            console.log(`[ChatPage] Chat header clicked: ${this.conversationID}`);
             if (this.onChatHeaderClick) {
               this.onChatHeaderClick(this.conversationID);
             }
@@ -191,6 +438,7 @@ export struct ChatPage {
         }
         .layoutWeight(1)
         .alignItems(VerticalAlign.Center)
+
       }
       .width('100%')
       .height(56)
@@ -198,7 +446,6 @@ export struct ChatPage {
       .alignItems(VerticalAlign.Center)
       .justifyContent(FlexAlign.SpaceBetween)
 
-      // Divider
       Divider()
         .width('100%')
         .height(0.3)

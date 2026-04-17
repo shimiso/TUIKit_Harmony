@@ -119,6 +119,14 @@
     {
       "name": "mention_select_member",
       "value": "选择提醒的人"
+    },
+    {
+      "name": "menu_voice_call",
+      "value": "语音通话"
+    },
+    {
+      "name": "menu_video_call",
+      "value": "视频通话"
     }
   ]
 }

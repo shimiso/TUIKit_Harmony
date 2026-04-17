@@ -1,0 +1,6 @@
+{
+  "src": [
+    "pages/CallMainView",
+    "pages/inviteuser/SelectMemberView"
+  ]
+}

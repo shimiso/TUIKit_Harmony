@@ -5,6 +5,23 @@ import { ConversationsPage } from 'chatuikit'
 import { LoginStore, ContactListStore, ContactListState, ConversationListStore, ConversationListState, ConversationInfo, MessageInfo, ContactInfo, LoginEvent } from '@tencentcloud/atomicxcore'
 import { ImmersiveMode, LevelMode } from '@kit.ArkUI'
 import { promptAction, router } from '@kit.ArkUI'
+import TUICallKitImpl from 'tuicallkit';
+import { TUIEventBus, TUIObserver, NotifyParams, CallMediaType } from '@tencentcloud/atomicx'
+
+class CallStartObserver implements TUIObserver {
+  onNotify(event: string, _key: string | null, params: NotifyParams | null): void {
+    if (event === 'call.startCall' && params?.data) {
+      const data = params.data;
+      const participantIds: string[] = (data['participantIds'] as string[]) ?? [];
+      const mediaType: CallMediaType = (data['mediaType'] as CallMediaType) ?? CallMediaType.audio;
+      if (participantIds.length === 0) {
+        return;
+      }
+      const mediaTypeNum: number = mediaType === CallMediaType.video ? 2 : 1;
+      TUICallKitImpl.createInstance(getContext()).calls(participantIds, mediaTypeNum, null);
+    }
+  }
+}
 
 @Observed
 class TabItem {
@@ -47,6 +64,7 @@ struct HomePage {
   private groupSettingDialogController?: CustomDialogController;
   private userInteractionHelper: UserInteractionHelper = new UserInteractionHelper();
   private loginEventUnsubscribe?: () => void;
+  private callEventObserver?: TUIObserver;
 
   aboutToAppear() {
     this.tabItems = [
@@ -73,13 +91,24 @@ struct HomePage {
       )
     ];
 
+    this.initCallKit();
     this.initContactBadge();
     this.subscribeLoginEvent();
   }
 
   aboutToDisappear() {
     this.loginEventUnsubscribe?.();
+    if (this.callEventObserver) {
+      TUIEventBus.getInstance().unsubscribe('call.startCall', null, this.callEventObserver);
+    }
   }
+
+  private initCallKit(): void {
+    TUICallKitImpl.createInstance(getContext())
+    this.callEventObserver = new CallStartObserver();
+    TUIEventBus.getInstance().subscribe('call.startCall', null, this.callEventObserver);
+  }
+
 
   /**
    * Subscribe to LoginStore events for kicked offline and user sig expired
@@ -100,7 +129,7 @@ struct HomePage {
 
   private handleKickedOffline() {
     console.warn('[HomePage] 🚫 Kicked offline - User logged in from another device');
-    
+
     // Close all dialogs
     if (this.groupSettingDialogController) {
       this.groupSettingDialogController.close();
@@ -128,7 +157,7 @@ struct HomePage {
 
   private handleUserSigExpired() {
     console.warn('[HomePage] ⏰ UserSig expired - Need to re-login');
-    
+
     // Close all dialogs
     if (this.groupSettingDialogController) {
       this.groupSettingDialogController.close();
@@ -369,7 +398,8 @@ struct HomePage {
           onChatHeaderClick: (clickedConversationID: string) => {
             console.log('[HomePage] Chat header clicked:', clickedConversationID);
             this.handleChatHeaderClick(clickedConversationID);
-          }
+          },
+
         }),
         autoCancel: false,
         alignment: DialogAlignment.Center,
@@ -429,7 +459,7 @@ struct HomePage {
   private handleChatHeaderClick(conversationID: string): void {
     console.info(`[HomePage] Handle chat header click: ${conversationID}`);
     const isGroupChat = conversationID.startsWith('group_');
-    
+
     if (isGroupChat) {
       // Show group setting dialog
       const groupID = conversationID.replace('group_', '');

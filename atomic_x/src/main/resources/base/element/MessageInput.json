@@ -119,6 +119,14 @@
     {
       "name": "mention_select_member",
       "value": "Select members to mention"
+    },
+    {
+      "name": "menu_voice_call",
+      "value": "Voice Call"
+    },
+    {
+      "name": "menu_video_call",
+      "value": "Video Call"
     }
   ]
 }

@@ -1,0 +1,152 @@
+{
+  "string": [
+    {
+      "name": "call_connected",
+      "value": "Connected"
+    },
+    {
+      "name": "call_waiting_for_acceptance",
+      "value": "Waiting for the other party to accept"
+    },
+    {
+      "name": "call_invited_to_audio",
+      "value": "Inviting you to an audio call"
+    },
+    {
+      "name": "call_invited_to_video",
+      "value": "Inviting you to a video call"
+    },
+    {
+      "name": "call_invited_to_group",
+      "value": "Inviting you to a group call"
+    },
+    {
+      "name": "call_hangup",
+      "value": "Hang Up"
+    },
+    {
+      "name": "call_accept",
+      "value": "Accept"
+    },
+    {
+      "name": "call_switch_camera",
+      "value": "Flip"
+    },
+    {
+      "name": "call_mic_on",
+      "value": "Microphone On"
+    },
+    {
+      "name": "call_mic_off",
+      "value": "Microphone Off"
+    },
+    {
+      "name": "call_speaker_on",
+      "value": "Speaker On"
+    },
+    {
+      "name": "call_speaker_off",
+      "value": "Speaker Off"
+    },
+    {
+      "name": "call_camera_on",
+      "value": "Camera On"
+    },
+    {
+      "name": "call_camera_off",
+      "value": "Camera Off"
+    },
+    {
+      "name": "call_self_network_low",
+      "value": "Your network quality is poor"
+    },
+    {
+      "name": "call_other_network_low",
+      "value": "The other party's network quality is poor"
+    },
+    {
+      "name": "call_they_are_also_there",
+      "value": "They are also there"
+    },
+    {
+      "name": "call_reject_caller",
+      "value": "The other party rejected"
+    },
+    {
+      "name": "call_reject_callee",
+      "value": "Rejected"
+    },
+    {
+      "name": "call_cancel_caller",
+      "value": "Cancelled"
+    },
+    {
+      "name": "call_cancel_callee",
+      "value": "The other party cancelled"
+    },
+    {
+      "name": "call_timeout_caller",
+      "value": "No response from the other party"
+    },
+    {
+      "name": "call_timeout_callee",
+      "value": "No response timeout"
+    },
+    {
+      "name": "call_line_busy_caller",
+      "value": "The other party is busy"
+    },
+    {
+      "name": "call_line_busy_callee",
+      "value": "Busy, not answered"
+    },
+    {
+      "name": "call_start",
+      "value": "Start Call"
+    },
+    {
+      "name": "call_accept_call",
+      "value": "Answered"
+    },
+    {
+      "name": "call_stop_tip",
+      "value": "Duration:"
+    },
+    {
+      "name": "call_switch_to_audio",
+      "value": "Switch to voice call"
+    },
+    {
+      "name": "call_switch_to_audio_accept",
+      "value": "Confirm video to voice"
+    },
+    {
+      "name": "call_group_send",
+      "value": "initiated a group call"
+    },
+    {
+      "name": "call_group_end",
+      "value": "End group call"
+    },
+    {
+      "name": "call_group_no_answer",
+      "value": "no answer"
+    },
+    {
+      "name": "call_group_reject",
+      "value": "declined call"
+    },
+    {
+      "name": "call_group_accept",
+      "value": "answered"
+    },
+    {
+      "name": "call_group_confirm_switch_to_audio",
+      "value": "confirm to audio call"
+    },
+    {
+      "name": "call_unknown",
+      "value": "Unknown call"
+    }
+  ]
+}

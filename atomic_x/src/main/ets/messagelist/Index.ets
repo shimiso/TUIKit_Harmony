@@ -52,3 +52,12 @@ export { AuxiliaryTextPopupMenu, type AuxiliaryTextMenuItemConfig } from './ui/A
 
 // Export classic message action popup
 export { ClassicMessageActionPopup, type ClassicMessageActionItem, type ClassicCustomActionItem } from './ui/ClassicMessageActionPopup';
+
+export {
+  CallingMessageDataProvider,
+  CallProtocolType,
+  CallStreamMediaType,
+  CallParticipantType,
+  CallParticipantRole,
+  CallMessageDirection
+} from './utils/CallingMessageDataProvider';

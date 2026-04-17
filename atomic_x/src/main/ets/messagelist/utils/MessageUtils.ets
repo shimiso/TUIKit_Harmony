@@ -24,6 +24,7 @@ import {
   UnpinGroupMessageSystemMessage
 } from '@tencentcloud/atomicxcore';
 import { TextUtils } from '../../basecomponent/Index';
+import { CallingMessageDataProvider } from './CallingMessageDataProvider';
 import { util } from '@kit.ArkTS';
 
 export class ReadReceiptLabelInfo {
@@ -184,7 +185,7 @@ export class MessageUtils {
     const muteTime = systemInfo.muteTime || 0;
     const memberShowName = systemInfo.mutedGroupMembersShowName || "";
     const isSelfMuted = systemInfo.isSelfMuted || false;
-    
+
     if (muteTime === 0) {
       if (isSelfMuted) {
         return $r('app.string.message_tips_self_unmute');
@@ -240,6 +241,10 @@ export class MessageUtils {
           if (dataStr) {
             try {
               const customInfo = JSON.parse(dataStr) as Record<string, string | number | boolean | object>;
+              const callingProvider = new CallingMessageDataProvider(messageInfo);
+              if (callingProvider.isCallingSignal) {
+                return callingProvider.content;
+              }
               if (customInfo && customInfo["businessID"] === "group_create") {
                 const sender = customInfo["opUser"] as string || "";
                 const cmd = customInfo["cmd"] as number || 0;

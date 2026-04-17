@@ -119,6 +119,14 @@
     {
       "name": "mention_select_member",
       "value": "اختر الأعضاء للإشارة إليهم"
+    },
+    {
+      "name": "menu_voice_call",
+      "value": "مكالمة صوتية"
+    },
+    {
+      "name": "menu_video_call",
+      "value": "مكالمة فيديو"
     }
   ]
 }

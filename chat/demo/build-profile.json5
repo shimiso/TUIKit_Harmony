@@ -16,7 +16,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"
@@ -51,6 +51,10 @@
     {
       "name": "chatuikit",
       "srcPath": "../uikit",
+    },
+    {
+      "name": "tuicallkit",
+      "srcPath": "../call"
     }
   ]
 }

@@ -33,3 +33,7 @@ export * from './ets/chatsetting/Index';
 export * from './ets/userpicker/Index';
 
 export * from './ets/search/Index';
+
+export * from './ets/call/Index';
+
+
