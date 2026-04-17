@@ -9,6 +9,7 @@ import { MMKV } from '@tencent/mmkv';
 import DemoConstants from '../utils/DemoConstants';
 import { LoginStore, UserProfile } from '@tencentcloud/atomicxcore';
 import { AppBuilderConfig, AppBuilderHelper } from '@tencentcloud/atomicx';
+import TUICallKit from 'tuicallkit';
 
 @Entry
 @Component
@@ -22,7 +23,11 @@ struct SplashScreenPage {
       LoginStore.shared()
         .login(SDKAPPID, userID!!, userSig!!, getContext().getApplicationContext())
         .then(() => {
-          return router.replaceUrl({ url: "pages/HomePage" });
+
+          TUICallKit.createInstance(getContext()).login(SDKAPPID, userID!, userSig!).then(() => {
+          }).catch((reason: Object) => {
+            Log.i("DevLoginPage", "TUICallKit login failed, " + reason);
+          });
         })
         .catch((reason: Object) => {
           Log.e("SplashScreenPage", "auto login failed, " + reason);
