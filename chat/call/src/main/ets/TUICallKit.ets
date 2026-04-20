@@ -1,5 +1,3 @@
-import { TUICallParams } from 'rtcroomengine';
-
 export abstract class TUICallKit {
 
   /**
@@ -16,11 +14,11 @@ export abstract class TUICallKit {
    * Make a 1VN calls
    * @param userIdList: List of userId
    * @param mediaType: Call media type
-   * @param params: Extension param: eg: offlinePushInfo
+   * @param params: Extension param: eg: offlinePushInfo, chatGroupId, timeout
    * @returns
    */
   abstract calls(userIdList: string[], mediaType: number,
-    params: TUICallParams | null): Promise<void>;
+    params: Record<string, Object> | null): Promise<void>;
 
   /**
    * Join a current call

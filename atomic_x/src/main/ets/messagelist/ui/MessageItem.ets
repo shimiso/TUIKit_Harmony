@@ -38,6 +38,8 @@ import { EmojiItem } from '../../emojipicker/data/EmojiData';
 import { EmojiDataManager, EmojiTextSegment } from '../../emojipicker/Index';
 import { MessageRenderContext } from '../context/MessageRenderContext';
 import { MessageUtils, ReadReceiptLabelInfo } from '../utils/MessageUtils';
+import { CallMessageView, CallMessageBubbleView, shouldHideCallingMessage } from '../cells/CallMessageView';
+import { CallingMessageDataProvider, CallParticipantType, CallMessageDirection } from '../utils/CallingMessageDataProvider';
 
 /**
  * Display mode for MessageItem
@@ -70,6 +72,11 @@ export function GetMessageView(context: MessageRenderContext) {
     if (context.message.messageBody?.customMessage) {
       if (isGroupCreated(context.message.messageBody?.customMessage)) {
         CreateGroupMessageView(context);
+      } else if (isCallingC2C(context.message)) {
+        CallMessageBubbleView(context);
+      } else if (isCallingGroup(context.message)) {
+        CallMessageView(context);
+      } else if (isCallingSignal(context.message)) {
       } else {
         SystemMessageView(context);
       }
@@ -101,6 +108,21 @@ function isGroupCreated(customMessage: CustomMessageInfo) {
     }
   }
   return false;
+}
+
+function isCallingSignal(message: MessageInfo): boolean {
+  const callingProvider = new CallingMessageDataProvider(message);
+  return callingProvider.isCallingSignal;
+}
+
+function isCallingC2C(message: MessageInfo): boolean {
+  const callingProvider = new CallingMessageDataProvider(message);
+  return callingProvider.isCallingSignal && callingProvider.participantType === CallParticipantType.c2c;
+}
+
+function isCallingGroup(message: MessageInfo): boolean {
+  const callingProvider = new CallingMessageDataProvider(message);
+  return callingProvider.isCallingSignal && callingProvider.participantType === CallParticipantType.group;
 }
 
 @Component
@@ -254,15 +276,15 @@ export struct MessageItem {
       .width(32)
       .height(32)
       .onClick(() => {
-        if (!this.message.isSelf && this.onUserClick && this.message.sender?.userID) {
+        if (!this.getEffectiveIsSelf() && this.onUserClick && this.message.sender?.userID) {
           this.onUserClick(this.message.sender.userID);
-        } 
+        }
       })
       .gesture(
         LongPressGesture({ repeat: false, duration: 500 })
           .onAction(() => {
             // Long press on avatar triggers @ mention (only for non-self messages)
-            if (!this.message.isSelf && this.onUserLongPress && this.message.sender?.userID) {
+            if (!this.getEffectiveIsSelf() && this.onUserLongPress && this.message.sender?.userID) {
               const userID = this.message.sender.userID;
               const nickname = this.message.sender.nickname || userID;
               this.onUserLongPress(userID, nickname);
@@ -289,7 +311,7 @@ export struct MessageItem {
         .fontSize(10)
         .fontColor(this.message.isSelf ?
         this.themeState.colors.textColorTertiary:
-          this.themeState.colors.textColorTertiary)
+        this.themeState.colors.textColorTertiary)
         .margin({ top: 4 })
         .padding({right:4})
         .alignSelf(ItemAlign.End)
@@ -321,14 +343,14 @@ export struct MessageItem {
     if (this.shouldHideBubbleBackground()) {
       return Color.Transparent;
     }
-    
+
     if (this.displayMode === MessageDisplayMode.Merged) {
       return this.themeState.colors.bgColorBubbleReciprocal;
     }
-    
-    return this.message.isSelf ? 
-      this.themeState.colors.bgColorBubbleOwn : 
-      this.themeState.colors.bgColorBubbleReciprocal;
+
+    return this.getEffectiveIsSelf() ?
+    this.themeState.colors.bgColorBubbleOwn :
+    this.themeState.colors.bgColorBubbleReciprocal;
   }
 
   /**
@@ -480,7 +502,8 @@ export struct MessageItem {
   @Builder
   MessageBubble(message: MessageInfo) {
 
-    if (message.messageType === MessageType.System || message.messageType === MessageType.Custom) {
+    if (message.messageType === MessageType.System ||
+      (message.messageType === MessageType.Custom && !isCallingC2C(message))) {
 
       Text("")
         .width(0)
@@ -530,20 +553,20 @@ export struct MessageItem {
     if (message.messageType !== MessageType.Sound) {
       return false;
     }
-    
+
     // Access version to trigger reactivity when AsrDisplayManager changes
     const _ = this.asrDisplayManager.version;
-    
+
     const isConverting = this.asrDisplayManager.isConverting(message.msgID);
     if (isConverting) {
       return true;
     }
-    
+
     const isExpanded = this.asrDisplayManager.isExpanded(message.msgID);
     if (!isExpanded) {
       return false;
     }
-    
+
     const asrText = message.messageBody?.asrText ?? '';
     return asrText.length > 0;
   }
@@ -556,20 +579,20 @@ export struct MessageItem {
     if (message.messageType !== MessageType.Text) {
       return false;
     }
-    
+
     // Access version to trigger reactivity when TranslationDisplayManager changes
     const _ = this.translationDisplayManager.version;
-    
+
     const isTranslating = this.translationDisplayManager.isTranslating(message.msgID);
     if (isTranslating) {
       return true;
     }
-    
+
     const isExpanded = this.translationDisplayManager.isExpanded(message.msgID);
     if (!isExpanded) {
       return false;
     }
-    
+
     // Get translated text
     const translatedText = this.getTranslatedText(message);
     return translatedText.length > 0;
@@ -659,41 +682,41 @@ export struct MessageItem {
         Column({ space: 6 }) {
           // Translation text content with emoji support
           Text() {
-            ForEach(EmojiDataManager.parseEmojiText(this.getTranslatedText(message)), 
+            ForEach(EmojiDataManager.parseEmojiText(this.getTranslatedText(message)),
               (segment: EmojiTextSegment, index: number) => {
-              if (segment.type === 'text') {
-                Span(segment.content)
-              } else if (segment.type === 'emoji' && segment.imageFile) {
-                ImageSpan(EmojiDataManager.getEmojiImageResource(segment.imageFile))
-                  .width(20)
-                  .height(20)
-                  .objectFit(ImageFit.Contain)
-                  .verticalAlign(ImageSpanAlignment.CENTER)
-              }
-            }, (segment: EmojiTextSegment, index: number) => `${segment.type}_${index}_${segment.content}`)
+                if (segment.type === 'text') {
+                  Span(segment.content)
+                } else if (segment.type === 'emoji' && segment.imageFile) {
+                  ImageSpan(EmojiDataManager.getEmojiImageResource(segment.imageFile))
+                    .width(20)
+                    .height(20)
+                    .objectFit(ImageFit.Contain)
+                    .verticalAlign(ImageSpanAlignment.CENTER)
+                }
+              }, (segment: EmojiTextSegment, index: number) => `${segment.type}_${index}_${segment.content}`)
           }
           .fontSize(14)
           .fontColor(message.isSelf ? this.themeState.colors.textColorAntiPrimary :
-            this.themeState.colors.textColorPrimary)
+          this.themeState.colors.textColorPrimary)
           .textOverflow({ overflow: TextOverflow.None })
           .maxLines(999)
           .wordBreak(WordBreak.BREAK_ALL)
-          
+
           // Bottom tips: checkmark icon + "Powered by Tencent Cloud IM"
           Row({ space: 4 }) {
             // Check circle icon (matching Flutter Icons.check_circle)
             Image($rawfile('basecomponent/check_circle_filled.svg'))
               .width(10)
               .height(10)
-              .fillColor(message.isSelf ? 
-                this.themeState.colors.textColorAntiPrimary :
-                this.themeState.colors.textColorSecondary)
-            
+              .fillColor(message.isSelf ?
+              this.themeState.colors.textColorAntiPrimary :
+              this.themeState.colors.textColorSecondary)
+
             Text($r('app.string.messagelist_translation_tips'))
               .fontSize(10)
-              .fontColor(message.isSelf ? 
-                this.themeState.colors.textColorAntiPrimary :
-                this.themeState.colors.textColorSecondary)
+              .fontColor(message.isSelf ?
+              this.themeState.colors.textColorAntiPrimary :
+              this.themeState.colors.textColorSecondary)
               .opacity(0.6)
           }
           .alignSelf(ItemAlign.Start)
@@ -736,7 +759,7 @@ export struct MessageItem {
   AsrTextMenuBuilder() {
     AuxiliaryTextPopupMenu({
       menuItems: [
-        // Hide button
+      // Hide button
         {
           text: $r('app.string.action_hide'),
           icon: $rawfile('messagelist/icon_extion_delete.svg'),
@@ -806,7 +829,7 @@ export struct MessageItem {
   TranslationTextMenuBuilder() {
     AuxiliaryTextPopupMenu({
       menuItems: [
-        // Hide button
+      // Hide button
         {
           text: $r('app.string.action_hide'),
           icon: $rawfile('messagelist/icon_extion_delete.svg'),
@@ -880,6 +903,14 @@ export struct MessageItem {
     });
   }
 
+  private getEffectiveIsSelf(): boolean {
+    if (isCallingC2C(this.message)) {
+      const callingProvider = new CallingMessageDataProvider(this.message);
+      return callingProvider.direction === CallMessageDirection.outcoming;
+    }
+    return this.message?.isSelf ?? false;
+  }
+
   build() {
     Column() {
       if (this.effectiveConfig.alignment === MessageAlignment.LEFT) {
@@ -906,13 +937,15 @@ export struct MessageItem {
           .justifyContent(FlexAlign.Center)
           .margin({ bottom: 8 })
         }
-      } else if (this.message.messageType === MessageType.Custom) {
-        Row() {
-          GetMessageView(this.createRenderContext());
+      } else if (this.message.messageType === MessageType.Custom && !isCallingC2C(this.message)) {
+        if (!shouldHideCallingMessage(this.message)) {
+          Row() {
+            GetMessageView(this.createRenderContext());
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+          .margin({ bottom: 8 })
         }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 8 })
       } else {
         Row() {
           if (this.shouldShowAvatarValue) {
@@ -927,16 +960,16 @@ export struct MessageItem {
             // In normal LEFT mode, only show nickname for non-self messages above bubble
             if (this.displayMode === MessageDisplayMode.Merged) {
               // Merged mode: show nickname above bubble for all messages
-              if (this.message.isSelf ? this.effectiveConfig.isShowRightNickname : this.effectiveConfig.isShowLeftNickname) {
+              if (this.getEffectiveIsSelf() ? this.effectiveConfig.isShowRightNickname : this.effectiveConfig.isShowLeftNickname) {
                 this.NicknameView()
               }
             } else {
               // Normal LEFT mode: only show nickname for non-self messages
-              if (!this.message.isSelf && this.effectiveConfig.isShowLeftNickname) {
+              if (!this.getEffectiveIsSelf() && this.effectiveConfig.isShowLeftNickname) {
                 this.NicknameView()
               }
             }
-            
+
             Column() {
               GetMessageView(this.createRenderContext());
             }
@@ -948,17 +981,17 @@ export struct MessageItem {
             .flexShrink(1)
             .alignItems(HorizontalAlign.Start)
             .justifyContent(FlexAlign.Start)
-            
+
             // ASR text bubble (separate from voice bubble)
             if (this.shouldShowAsrBubble(this.message)) {
               this.AsrTextBubble(this.message)
             }
-            
+
             // Translation text bubble (separate from text bubble)
             if (this.shouldShowTranslationBubble(this.message)) {
               this.TranslationTextBubble(this.message)
             }
-            
+
             // Show reaction bar
             if (this.effectiveConfig.isSupportReaction && this.message.reactionList && this.message.reactionList.length > 0) {
               MessageReactionBar({
@@ -968,7 +1001,7 @@ export struct MessageItem {
                 }
               })
             }
-            
+
             // Show violation warning for sensitive content
             if (this.message.status === MessageStatus.violation) {
               Text($r('app.string.messagelist_violation_warning'))
@@ -976,10 +1009,10 @@ export struct MessageItem {
                 .fontColor(this.themeState.colors.textColorError)
                 .margin({ top: 4 })
             }
-            
+
             // In normal LEFT mode, show nickname below bubble for self messages
             if (this.displayMode !== MessageDisplayMode.Merged) {
-              if (this.message.isSelf && this.effectiveConfig.isShowRightNickname) {
+              if (this.getEffectiveIsSelf() && this.effectiveConfig.isShowRightNickname) {
                 this.NicknameView()
               }
             }
@@ -987,7 +1020,7 @@ export struct MessageItem {
           .flexShrink(1)
           .alignItems(HorizontalAlign.Start)
 
-          if (this.message.isSelf && (this.message.status === MessageStatus.sendFail || this.message.status === MessageStatus.violation)) {
+          if (this.getEffectiveIsSelf() && (this.message.status === MessageStatus.sendFail || this.message.status === MessageStatus.violation)) {
             Image($rawfile('messagelist/icon_message_send_error.svg'))
               .width(16)
               .height(16)
@@ -1001,7 +1034,7 @@ export struct MessageItem {
           }
 
           // Read receipt label outside bubble
-          if (this.message.isSelf) {
+          if (this.getEffectiveIsSelf()) {
             this.ReadReceiptLabel()
           }
         }
@@ -1015,21 +1048,21 @@ export struct MessageItem {
             })
         )
         .bindPopup(
-          this.showClassicActionPopup && 
-          this.effectiveConfig.messageActionStyle === 'popup' &&
-          this.message.status !== MessageStatus.recalled &&
-          this.message.status !== MessageStatus.violation,
+          this.showClassicActionPopup &&
+            this.effectiveConfig.messageActionStyle === 'popup' &&
+            this.message.status !== MessageStatus.recalled &&
+            this.message.status !== MessageStatus.violation,
           {
-          builder: this.ClassicActionPopupBuilder,
-          placement: this.message.isSelf ? Placement.TopRight : Placement.TopLeft,
-          enableArrow: false,
-          mask: false,
-          onStateChange: (e) => {
-            if (!e.isVisible) {
-              this.showClassicActionPopup = false;
+            builder: this.ClassicActionPopupBuilder,
+            placement: this.getEffectiveIsSelf() ? Placement.TopRight : Placement.TopLeft,
+            enableArrow: false,
+            mask: false,
+            onStateChange: (e) => {
+              if (!e.isVisible) {
+                this.showClassicActionPopup = false;
+              }
             }
-          }
-        })
+          })
         .backgroundColor(this.isHighlighted ? 'rgba(0, 122, 255, 0.1)' : 'transparent')
         .borderRadius(this.isHighlighted ? 8 : 0)
         .animation({
@@ -1055,21 +1088,23 @@ export struct MessageItem {
           .justifyContent(FlexAlign.Center)
           .margin({ bottom: 8 })
         }
-      } else if (this.message.messageType === MessageType.Custom) {
-        Row() {
-          GetMessageView(this.createRenderContext());
+      } else if (this.message.messageType === MessageType.Custom && !isCallingC2C(this.message)) {
+        if (!shouldHideCallingMessage(this.message)) {
+          Row() {
+            GetMessageView(this.createRenderContext());
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+          .margin({ bottom: 8 })
         }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 8 })
       } else {
         Row() {
           // Read receipt label outside bubble
-          if (this.message.isSelf) {
+          if (this.getEffectiveIsSelf()) {
             this.ReadReceiptLabel()
           }
 
-          if (this.message.isSelf && (this.message.status === MessageStatus.sendFail || this.message.status === MessageStatus.violation)) {
+          if (this.getEffectiveIsSelf() && (this.message.status === MessageStatus.sendFail || this.message.status === MessageStatus.violation)) {
             Image($rawfile('messagelist/icon_message_send_error.svg'))
               .width(16)
               .height(16)
@@ -1083,10 +1118,10 @@ export struct MessageItem {
           }
           Column() {
             // Show nickname for left messages (others)
-            if (!this.message.isSelf && this.effectiveConfig.isShowLeftNickname) {
+            if (!this.getEffectiveIsSelf() && this.effectiveConfig.isShowLeftNickname) {
               this.NicknameView()
             }
-            
+
             Column() {
               GetMessageView(this.createRenderContext());
             }
@@ -1097,17 +1132,17 @@ export struct MessageItem {
             .flexShrink(1)
             .alignItems(HorizontalAlign.End)
             .justifyContent(FlexAlign.End)
-            
+
             // ASR text bubble (separate from voice bubble)
             if (this.shouldShowAsrBubble(this.message)) {
               this.AsrTextBubble(this.message)
             }
-            
+
             // Translation text bubble (separate from text bubble)
             if (this.shouldShowTranslationBubble(this.message)) {
               this.TranslationTextBubble(this.message)
             }
-            
+
             // Show reaction bar
             if (this.effectiveConfig.isSupportReaction && this.message.reactionList && this.message.reactionList.length > 0) {
               MessageReactionBar({
@@ -1117,9 +1152,9 @@ export struct MessageItem {
                 }
               })
             }
-            
+
             // Show nickname for right messages (self)
-            if (this.message.isSelf && this.effectiveConfig.isShowRightNickname) {
+            if (this.getEffectiveIsSelf() && this.effectiveConfig.isShowRightNickname) {
               this.NicknameView()
             }
           }
@@ -1143,21 +1178,21 @@ export struct MessageItem {
             })
         )
         .bindPopup(
-          this.showClassicActionPopup && 
-          this.effectiveConfig.messageActionStyle === 'popup' &&
-          this.message.status !== MessageStatus.recalled &&
-          this.message.status !== MessageStatus.violation,
+          this.showClassicActionPopup &&
+            this.effectiveConfig.messageActionStyle === 'popup' &&
+            this.message.status !== MessageStatus.recalled &&
+            this.message.status !== MessageStatus.violation,
           {
-          builder: this.ClassicActionPopupBuilder,
-          placement: this.message.isSelf ? Placement.TopRight : Placement.TopLeft,
-          enableArrow: false,
-          mask: false,
-          onStateChange: (e) => {
-            if (!e.isVisible) {
-              this.showClassicActionPopup = false;
+            builder: this.ClassicActionPopupBuilder,
+            placement: this.getEffectiveIsSelf() ? Placement.TopRight : Placement.TopLeft,
+            enableArrow: false,
+            mask: false,
+            onStateChange: (e) => {
+              if (!e.isVisible) {
+                this.showClassicActionPopup = false;
+              }
             }
-          }
-        })
+          })
         .backgroundColor(this.isHighlighted ? 'rgba(0, 122, 255, 0.1)' : 'transparent')
         .borderRadius(this.isHighlighted ? 8 : 0)
         .animation({
@@ -1183,16 +1218,18 @@ export struct MessageItem {
           .justifyContent(FlexAlign.Center)
           .margin({ bottom: 8 })
         }
-      } else if (this.message.messageType === MessageType.Custom) {
-        Row() {
-          GetMessageView(this.createRenderContext());
+      } else if (this.message.messageType === MessageType.Custom && !isCallingC2C(this.message)) {
+        if (!shouldHideCallingMessage(this.message)) {
+          Row() {
+            GetMessageView(this.createRenderContext());
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+          .margin({ bottom: 8 })
         }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 8 })
       } else {
         Row() {
-          if (this.message.isSelf) {
+          if (this.getEffectiveIsSelf()) {
             // Sender's message (right side)
             Row() {
               // Read receipt label outside bubble
@@ -1216,19 +1253,19 @@ export struct MessageItem {
                 if (this.effectiveConfig.isShowRightNickname) {
                   this.NicknameView()
                 }
-                
+
                 this.MessageBubble(this.message)
-                
+
                 // ASR text bubble (separate from voice bubble)
                 if (this.shouldShowAsrBubble(this.message)) {
                   this.AsrTextBubble(this.message)
                 }
-                
+
                 // Translation text bubble (separate from text bubble)
                 if (this.shouldShowTranslationBubble(this.message)) {
                   this.TranslationTextBubble(this.message)
                 }
-                
+
                 // Show reaction bar
                 if (this.effectiveConfig.isSupportReaction && this.message.reactionList && this.message.reactionList.length > 0) {
                   MessageReactionBar({
@@ -1238,7 +1275,7 @@ export struct MessageItem {
                     }
                   })
                 }
-                
+
                 // Show violation warning for sensitive content
                 if (this.message.status === MessageStatus.violation) {
                   Text($r('app.string.messagelist_violation_warning'))
@@ -1272,9 +1309,9 @@ export struct MessageItem {
                 // When avatar should not be shown but left avatar is enabled,
                 // render empty space with same dimensions for alignment
                 Stack() {}
-                  .width(32)
-                  .height(32)
-                  .margin({ right: this.effectiveConfig.avatarSpacing ?? 6 })
+                .width(32)
+                .height(32)
+                .margin({ right: this.effectiveConfig.avatarSpacing ?? 6 })
               }
 
               Column() {
@@ -1282,37 +1319,37 @@ export struct MessageItem {
                 if (this.effectiveConfig.isShowLeftNickname) {
                   this.NicknameView()
                 }
-                
+
                 this.MessageBubble(this.message)
-                
+
                 // ASR text bubble (separate from voice bubble)
                 if (this.shouldShowAsrBubble(this.message)) {
                   this.AsrTextBubble(this.message)
                 }
-                
+
                 // Translation text bubble (separate from text bubble)
                 if (this.shouldShowTranslationBubble(this.message)) {
                   this.TranslationTextBubble(this.message)
                 }
-                
-            // Show reaction bar
-            if (this.effectiveConfig.isSupportReaction && this.message.reactionList && this.message.reactionList.length > 0) {
-              MessageReactionBar({
-                reactionList: this.message.reactionList,
-                onClickCallback: () => {
-                  this.showReactionDetail();
+
+                // Show reaction bar
+                if (this.effectiveConfig.isSupportReaction && this.message.reactionList && this.message.reactionList.length > 0) {
+                  MessageReactionBar({
+                    reactionList: this.message.reactionList,
+                    onClickCallback: () => {
+                      this.showReactionDetail();
+                    }
+                  })
                 }
-              })
-            }
-          }
-          .alignItems(HorizontalAlign.Start)
+              }
+              .alignItems(HorizontalAlign.Start)
             }
             .width('80%')
             .justifyContent(FlexAlign.Start)
           }
         }
         .width('100%')
-        .justifyContent(this.message.isSelf ? FlexAlign.End : FlexAlign.Start)
+        .justifyContent(this.getEffectiveIsSelf() ? FlexAlign.End : FlexAlign.Start)
         .gesture(
           LongPressGesture({ repeat: false })
             .onAction((event: GestureEvent) => {
@@ -1321,21 +1358,21 @@ export struct MessageItem {
             })
         )
         .bindPopup(
-          this.showClassicActionPopup && 
-          this.effectiveConfig.messageActionStyle === 'popup' &&
-          this.message.status !== MessageStatus.recalled &&
-          this.message.status !== MessageStatus.violation,
+          this.showClassicActionPopup &&
+            this.effectiveConfig.messageActionStyle === 'popup' &&
+            this.message.status !== MessageStatus.recalled &&
+            this.message.status !== MessageStatus.violation,
           {
-          builder: this.ClassicActionPopupBuilder,
-          placement: this.message.isSelf ? Placement.TopRight : Placement.TopLeft,
-          enableArrow: false,
-          mask: false,
-          onStateChange: (e) => {
-            if (!e.isVisible) {
-              this.showClassicActionPopup = false;
+            builder: this.ClassicActionPopupBuilder,
+            placement: this.getEffectiveIsSelf() ? Placement.TopRight : Placement.TopLeft,
+            enableArrow: false,
+            mask: false,
+            onStateChange: (e) => {
+              if (!e.isVisible) {
+                this.showClassicActionPopup = false;
+              }
             }
-          }
-        })
+          })
         .backgroundColor(this.isHighlighted ? 'rgba(0, 122, 255, 0.1)' : 'transparent')
         .borderRadius(this.isHighlighted ? 8 : 0)
         .animation({
@@ -1356,18 +1393,18 @@ export struct MessageItem {
     if (AppBuilderConfig.getInstance().useClassicUI) {
       return true;
     }
-    
+
     switch (alignment) {
       case MessageAlignment.LEFT:
         // In LEFT mode, always show avatar based on style configuration
-          return true;
+        return true;
       case MessageAlignment.RIGHT:
         // In RIGHT mode, always show avatar based on style configuration
-          return  true
+        return  true
       case MessageAlignment.TWO_SIDED:
       default:
-        // In TWO_SIDED mode, respect both showAvatar flag and style configuration
-        if (this.message.isSelf) {
+      // In TWO_SIDED mode, respect both showAvatar flag and style configuration
+        if (this.getEffectiveIsSelf()) {
           const showRight = this.effectiveConfig.isShowRightAvatar ?? false;
           return showRight;
         } else {

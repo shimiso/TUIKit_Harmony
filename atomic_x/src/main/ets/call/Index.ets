@@ -10,6 +10,7 @@ export { CallGridWaitingWidget } from './pages/CallGridWaitingWidget';
 export {
   CallStore,
   CallMediaType,
+  CallParams,
   CallParticipantStatus,
   CallParticipantInfo,
   ActiveCallInfo,

@@ -102,7 +102,7 @@ export struct MessageList {
 
   // ASR Display Manager for voice-to-text feature
   @State private asrDisplayManager: AsrDisplayManager = new AsrDisplayManager();
-  
+
   // Translation Display Manager for text translation feature
   @State private translationDisplayManager: TranslationDisplayManager = new TranslationDisplayManager();
 
@@ -132,7 +132,7 @@ export struct MessageList {
     }
     console.info(`[MessageList] aboutToAppear with conversationID: ${this.conversationID}, locateMessage: ${this.locateMessage?.ID ||
       'none'}`);
-    
+
     if (this.conversationID) {
       this.loadMessages();
       this.clearMessageUnreadCount();
@@ -218,8 +218,8 @@ export struct MessageList {
    * Auto-close dialog when message status becomes recalled or violation
    */
   private onSelectedMessageChanged(): void {
-    if (this.selectedMessage && 
-        (this.selectedMessage.status === MessageStatus.recalled || this.selectedMessage.status === MessageStatus.violation)) {
+    if (this.selectedMessage &&
+      (this.selectedMessage.status === MessageStatus.recalled || this.selectedMessage.status === MessageStatus.violation)) {
       if (this.dialogController) {
         this.dialogController.close();
         this.dialogController = null;
@@ -310,7 +310,9 @@ export struct MessageList {
 
   @Builder
   MessageItemBuilder(message: MessageInfo, index: number) {
-    this.NormalMessageItemBuilder(message, index);
+    if (message.messageType !== MessageType.System || MessageUtils.isKnownSystemMessage(message)) {
+      this.NormalMessageItemBuilder(message, index);
+    }
   }
 
   @Builder
@@ -335,7 +337,7 @@ export struct MessageList {
         .justifyContent(FlexAlign.Center)
         .margin({ bottom: 8, top: 8 })
       }
-      
+
       Row() {
         // Checkbox for multi-select mode (only show for selectable messages)
         if (this.isMultiSelectMode && this.canSelectMessage(message)) {
@@ -348,7 +350,7 @@ export struct MessageList {
           })
             .margin({ right: 12 })
         }
-        
+
         MessageItem({
           message: message,
           initialShowAvatar: this.shouldShowAvatar(message, index),
@@ -371,15 +373,15 @@ export struct MessageList {
           onUserLongPress: (userID: string, nickname: string) => {
             // Post event via EventBus (Android style)
             console.log(`[MessageList] 📤 Posting onUserLongPress event: userID=${userID}, nickname=${nickname}`);
-            
+
             const eventData: Record<string, Object> = {};
             eventData['source'] = 'MessageList';
             eventData['event'] = 'onUserLongPress';
             eventData['userID'] = userID;
             eventData['nickname'] = nickname;
-            
+
             EventBus.getInstance().post('onUserLongPress', eventData);
-            
+
             // Also call the callback if provided (backward compatibility)
             if (this.onUserLongPress) {
               this.onUserLongPress(userID, nickname);
@@ -478,7 +480,7 @@ export struct MessageList {
     if (AppBuilderConfig.getInstance().useClassicUI) {
       return true;
     }
-    
+
     if (message.isSelf) {
       // For self messages, check right avatar configuration
       return this.effectiveConfig.isShowRightAvatar ?? false;
@@ -780,7 +782,7 @@ export struct MessageList {
     if (AppBuilderConfig.getInstance().useClassicUI) {
       return false;
     }
-    
+
     const message = this.messageListState?.messageDataSource.getData(currentIndex);
     const prevMessage = this.getPreviousMessage(currentIndex);
 
@@ -815,7 +817,7 @@ export struct MessageList {
     if (AppBuilderConfig.getInstance().useClassicUI) {
       return false;
     }
-    
+
     const message = this.messageListState?.messageDataSource.getData(currentIndex);
     const nextMessage = this.getNextMessage(currentIndex);
 
@@ -1098,7 +1100,7 @@ export struct MessageList {
     if (!this.effectiveConfig.isSupportReaction || !this.messageListStore) {
       return;
     }
-    
+
     if (messages.length === 0) {
       return;
     }
@@ -1321,7 +1323,7 @@ export struct MessageList {
     const messageActionStore = MessageActionStore.create(message);
     const reactionID = emoji.name;
     const existingReaction = message.reactionList?.find(r => r.reactionID === reactionID);
-    
+
     if (existingReaction && (existingReaction.reactedByMyself ?? false)) {
       // Remove reaction if already reacted
       messageActionStore.removeMessageReaction(reactionID)
@@ -1391,21 +1393,21 @@ export struct MessageList {
    */
   private validateMessagesForForward(): boolean {
     const selectedMessages = this.getSelectedMessages();
-    
+
     // Check for failed messages
     const hasFailedMessages = selectedMessages.some(msg => msg.status === MessageStatus.sendFail);
     if (hasFailedMessages) {
       Toast.error($r('app.string.forward_failed_message_tip'), this.getUIContext());
       return false;
     }
-    
+
     // Check for violation messages
     const hasViolationMessages = selectedMessages.some(msg => msg.status === MessageStatus.violation);
     if (hasViolationMessages) {
       Toast.error($r('app.string.forward_violation_message_tip'), this.getUIContext());
       return false;
     }
-    
+
     return true;
   }
 
@@ -1416,7 +1418,7 @@ export struct MessageList {
     if (!this.canSelectMessage(message)) {
       return;
     }
-    
+
     if (this.selectedMessageIDs.has(message.ID)) {
       this.selectedMessageIDs.delete(message.ID);
     } else {
@@ -1435,17 +1437,17 @@ export struct MessageList {
     if (!this.messageListState?.messageDataSource) {
       return [];
     }
-    
+
     const selectedMessages: MessageInfo[] = [];
     const totalCount = this.messageListState.messageDataSource.totalCount();
-    
+
     for (let i = 0; i < totalCount; i++) {
       const message = this.messageListState.messageDataSource.getData(i) as MessageInfo;
       if (message && this.selectedMessageIDs.has(message.ID)) {
         selectedMessages.push(message);
       }
     }
-    
+
     // Sort by timestamp
     return selectedMessages.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
   }
@@ -1458,7 +1460,7 @@ export struct MessageList {
     if (selectedMessages.length === 0) {
       return;
     }
-    
+
     // Use batch delete API
     this.messageListStore?.deleteMessages(selectedMessages)
       .then(() => {
@@ -1487,10 +1489,10 @@ export struct MessageList {
     // For single message forward, directly show forward target selector without entering multi-select mode
     // Set default forward type to separate
     this.forwardType = MessageForwardType.separate;
-    
+
     // Store the message to forward
     this.selectedMessageIDs = new Set([message.ID]);
-    
+
     // Show forward target selector directly
     this.showForwardTargetSelector();
   }
@@ -1502,7 +1504,7 @@ export struct MessageList {
   showForwardTypeSelector() {
     const selectedCount = this.selectedMessageIDs.size;
     const exceedsLimit = selectedCount > MessageList.MAX_SEPARATE_FORWARD_COUNT;
-    
+
     this.forwardTypeDialogController = new CustomDialogController({
       builder: ForwardTypeDialog({
         showSeparateOption: !exceedsLimit,
@@ -1518,7 +1520,7 @@ export struct MessageList {
       alignment: DialogAlignment.Bottom,
       customStyle: true
     });
-    
+
     this.forwardTypeDialogController.open();
   }
 
@@ -1542,7 +1544,7 @@ export struct MessageList {
       alignment: DialogAlignment.Bottom,
       customStyle: true
     });
-    
+
     this.forwardDialogController.open();
   }
 
@@ -1561,18 +1563,18 @@ export struct MessageList {
       }
       return;
     }
-    
+
     console.info(`[MessageList] Forwarding ${selectedMessages.length} messages to ${targetConversationIDs.length} conversations, type: ${this.forwardType}`);
-    
+
     // Build forward option
     const forwardOption = new MessageForwardOption();
     forwardOption.forwardType = this.forwardType;
-    
+
     if (this.forwardType === MessageForwardType.merged) {
       // Generate merged forward info
       forwardOption.mergedForwardInfo = this.generateMergedForwardInfo(selectedMessages);
     }
-    
+
     // Exit multi-select mode only if we're actually in it
     if (this.isMultiSelectMode) {
       this.exitMultiSelectMode();
@@ -1580,7 +1582,7 @@ export struct MessageList {
       // Clear temporary selection for single message forward
       this.selectedMessageIDs.clear();
     }
-    
+
     // Forward to each conversation sequentially
     const forwardPromises: Promise<void>[] = [];
     for (const targetConversationID of targetConversationIDs) {
@@ -1596,7 +1598,7 @@ export struct MessageList {
         forwardPromises.push(promise);
       }
     }
-    
+
     // Wait for all forwards to complete (in background)
     Promise.all(forwardPromises)
       .then(() => {
@@ -1613,10 +1615,10 @@ export struct MessageList {
    */
   private generateMergedForwardInfo(messages: MessageInfo[]): MergedForwardInfo {
     const mergedInfo = new MergedForwardInfo();
-    
+
     // Generate title based on conversation type
     mergedInfo.title = this.generateMergedTitle(messages);
-    
+
     // Generate abstract list (up to 4 messages)
     const abstractList: string[] = [];
     const maxAbstractCount = Math.min(messages.length, 4);
@@ -1628,13 +1630,13 @@ export struct MessageList {
       abstractList.push(`${senderName}: ${abstractStr}`);
     }
     mergedInfo.abstractList = abstractList;
-    
+
     // Compatible text for older clients
     mergedInfo.compatibleText = TextUtils.getResourceString($r('app.string.forward_compatible_text'));
-    
+
     // Set needReadReceipt to true for merged messages
     mergedInfo.needReadReceipt = true;
-    
+
     return mergedInfo;
   }
 
@@ -1645,14 +1647,14 @@ export struct MessageList {
   private generateMergedTitle(messages: MessageInfo[]): string {
     // Check if it's a group chat (conversationID starts with "group_")
     const isGroupChat = this.conversationID.startsWith('group_');
-    
+
     if (isGroupChat) {
       return TextUtils.getResourceString($r('app.string.forward_group_chat_history'));
     } else {
       // C2C chat: collect unique senders in order of appearance
       const senderNames: string[] = [];
       const seenSenders: Set<string> = new Set();
-      
+
       for (const message of messages) {
         const sender = message.sender?.userID || '';
         if (sender && !seenSenders.has(sender)) {
@@ -1666,11 +1668,11 @@ export struct MessageList {
           break;
         }
       }
-      
+
       // Build title using localized strings (like Kotlin)
       const andText = TextUtils.getResourceString($r('app.string.forward_and_text')); // "和" / "and" / "و"
       const historySuffix = TextUtils.getResourceString($r('app.string.forward_chat_history_c2c')); // "的聊天记录" / "'s Chat History"
-      
+
       if (senderNames.length === 2) {
         return `${senderNames[0]}${andText}${senderNames[1]}${historySuffix}`;
       } else if (senderNames.length === 1) {
@@ -1763,7 +1765,7 @@ export struct MessageList {
 
     for (const targetConversationID of targetConversationIDs) {
       const messageInputStore = MessageInputStore.create(targetConversationID);
-      
+
       const message = new MessageInfo();
       message.messageType = MessageType.Text;
       const body = new MessageBody();
@@ -1854,7 +1856,7 @@ export struct MessageList {
 
       // Split text by emoji and @ users
       const splitResult = TranslationTextParser.splitTextByEmojiAndAtUsers(originalText, atUserNames ?? undefined);
-      
+
       if (!splitResult) {
         console.log(`[MessageList]  Split result is null`);
         this.translationDisplayManager.setTranslating(message.msgID, false);
@@ -1882,7 +1884,7 @@ export struct MessageList {
       console.log(`[MessageList]  Using target language: ${targetLanguage}`);
       console.log(`[MessageList]  Original text: ${originalText}`);
       console.log(`[MessageList]  Text fragments to translate:`, textArray);
-      
+
       const messageActionStore = MessageActionStore.create(message);
       await messageActionStore.translateText(textArray, undefined, targetLanguage);
 
@@ -1913,12 +1915,12 @@ export struct MessageList {
         Toast.info($r('app.string.messagelist_translate_failed'), this.getUIContext());
       } else {
         console.log(`[MessageList]  Final translated text: ${translatedFullText}`);
-        
+
         // Update translation map with the full text (for display)
         if (message.messageBody && message.messageBody.translatedText) {
           message.messageBody.translatedText.set(originalText, translatedFullText);
         }
-        
+
         // Scroll to bottom if this is the last message
         this.scrollToBottomIfLastMessage(message);
       }
@@ -1926,7 +1928,7 @@ export struct MessageList {
       console.error(`[MessageList]  Text translation failed:`, error);
       this.translationDisplayManager.setTranslating(message.msgID, false);
       this.translationDisplayManager.collapse(message.msgID);
-      
+
       Toast.info($r('app.string.messagelist_translate_failed'), this.getUIContext());
     }
   }
@@ -1972,7 +1974,7 @@ export struct MessageList {
 
     for (const targetConversationID of targetConversationIDs) {
       const messageInputStore = MessageInputStore.create(targetConversationID);
-      
+
       const message = new MessageInfo();
       message.messageType = MessageType.Text;
       const body = new MessageBody();

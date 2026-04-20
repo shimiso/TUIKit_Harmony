@@ -14,6 +14,11 @@ export enum CallMediaType {
   video = 'video',
 }
 
+export interface CallParams {
+  chatGroupId?: string;
+  timeout?: number;
+}
+
 /**
  * 通话参与者状态
  */

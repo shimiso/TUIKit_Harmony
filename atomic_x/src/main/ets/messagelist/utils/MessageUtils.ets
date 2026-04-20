@@ -38,6 +38,32 @@ export class ReadReceiptLabelInfo {
 }
 
 export class MessageUtils {
+  static isKnownSystemMessage(message: MessageInfo): boolean {
+    const systemMessages = message.messageBody?.systemMessage;
+    if (!systemMessages || systemMessages.length === 0) {
+      return true;
+    }
+    const systemInfo = systemMessages[0];
+    return systemInfo instanceof RecallMessageSystemMessage ||
+      systemInfo instanceof JoinGroupSystemMessage ||
+      systemInfo instanceof InviteToGroupSystemMessage ||
+      systemInfo instanceof QuitGroupSystemMessage ||
+      systemInfo instanceof KickedFromGroupSystemMessage ||
+      systemInfo instanceof SetGroupAdminSystemMessage ||
+      systemInfo instanceof CancelGroupAdminSystemMessage ||
+      systemInfo instanceof ChangeGroupNameSystemMessage ||
+      systemInfo instanceof ChangeGroupAvatarSystemMessage ||
+      systemInfo instanceof ChangeGroupNotificationSystemMessage ||
+      systemInfo instanceof ChangeGroupIntroductionSystemMessage ||
+      systemInfo instanceof ChangeGroupOwnerSystemMessage ||
+      systemInfo instanceof ChangeGroupMuteAllSystemMessage ||
+      systemInfo instanceof ChangeJoinGroupApprovalSystemMessage ||
+      systemInfo instanceof ChangeInviteToGroupApprovalSystemMessage ||
+      systemInfo instanceof MuteGroupMemberSystemMessage ||
+      systemInfo instanceof PinGroupMessageSystemMessage ||
+      systemInfo instanceof UnpinGroupMessageSystemMessage;
+  }
+
   static getSystemInfoDisplayString(systemInfo?: SystemMessageInfo): string | Resource {
     if (!systemInfo) {
       return "";
@@ -165,8 +191,8 @@ export class MessageUtils {
   static getChangeGroupMuteAllDisplayString(systemInfo: ChangeGroupMuteAllSystemMessage): string | Resource {
     const op = systemInfo.groupMuteAllOperator || "";
     return systemInfo.isMuteAll ?
-      $r('app.string.message_tips_shutup_all', op) :
-      $r('app.string.message_tips_cancel_shutup_all', op);
+    $r('app.string.message_tips_shutup_all', op) :
+    $r('app.string.message_tips_cancel_shutup_all', op);
   }
 
   static getChangeJoinGroupApprovalDisplayString(systemInfo: ChangeJoinGroupApprovalSystemMessage): string | Resource {

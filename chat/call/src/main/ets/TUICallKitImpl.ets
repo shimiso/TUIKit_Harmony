@@ -57,9 +57,19 @@ export class TUICallKitImpl extends TUICallKit {
     });
   }
 
-  override calls(userIdList: string[], mediaType: number, params: TUICallParams | null): Promise<void> {
+  override calls(userIdList: string[], mediaType: number, params: Record<string, Object> | null): Promise<void> {
     const tuiMediaType: TUICallMediaType = mediaType as TUICallMediaType;
     Logger.log(TAG, `calls start, userIdList: ${userIdList}, mediaType: ${tuiMediaType}, param: ${params}`)
+    let callParams: TUICallParams | null = null;
+    if (params) {
+      callParams = {
+        roomId: { intRoomId: 0, strRoomId: '' },
+        offlinePushInfo: null,
+        timeout: (params['timeout'] as number) ?? 30,
+        userData: null,
+        chatGroupId: (params['chatGroupId'] as string) ?? '',
+      } as TUICallParams;
+    }
     return new Promise((resolve, reject) => {
       Permission.requestPermission(tuiMediaType).then((data) => {
         if (!data.grantStatus) {
@@ -68,7 +78,7 @@ export class TUICallKitImpl extends TUICallKit {
           return
         }
         Logger.info(TAG, `calls start, permission requested success`)
-        CallManager.getInstance().calls(userIdList, tuiMediaType, params).then(() => {
+        CallManager.getInstance().calls(userIdList, tuiMediaType, callParams).then(() => {
           Logger.info(TAG, `calls start success`)
           this.startCallMainView()
           resolve()

@@ -6,7 +6,7 @@ import { LoginStore, ContactListStore, ContactListState, ConversationListStore, 
 import { ImmersiveMode, LevelMode } from '@kit.ArkUI'
 import { promptAction, router } from '@kit.ArkUI'
 import TUICallKitImpl from 'tuicallkit';
-import { TUIEventBus, TUIObserver, NotifyParams, CallMediaType } from '@tencentcloud/atomicx'
+import { TUIEventBus, TUIObserver, NotifyParams, CallMediaType, CallParams } from '@tencentcloud/atomicx'
 
 class CallStartObserver implements TUIObserver {
   onNotify(event: string, _key: string | null, params: NotifyParams | null): void {
@@ -18,7 +18,16 @@ class CallStartObserver implements TUIObserver {
         return;
       }
       const mediaTypeNum: number = mediaType === CallMediaType.video ? 2 : 1;
-      TUICallKitImpl.createInstance(getContext()).calls(participantIds, mediaTypeNum, null);
+      const chatGroupId: string = (data['chatGroupId'] as string) ?? '';
+      const timeout: number = (data['timeout'] as number) ?? 30;
+      let callParams: CallParams | null = null;
+      if (chatGroupId.length > 0) {
+        callParams = {
+          chatGroupId: chatGroupId,
+          timeout: timeout,
+        };
+      }
+      TUICallKitImpl.createInstance(getContext()).calls(participantIds, mediaTypeNum, callParams as Record<string, Object> | null);
     }
   }
 }

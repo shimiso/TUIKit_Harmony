@@ -103,20 +103,33 @@ export class CallingMessageDataProvider {
       if (!dataStr) {
         return;
       }
-      this._jsonData = JSON.parse(dataStr) as Record<string, Object>;
+
+      const outerData = JSON.parse(dataStr) as Record<string, Object>;
+      if (!outerData) {
+        return;
+      }
+
+      this._actionType = (outerData['actionType'] as number) ?? 0;
+      this._groupID = (outerData['groupID'] as string) ?? '';
+      const inviteeList = outerData['inviteeList'] as string[];
+      if (inviteeList) {
+        this._inviteeList = inviteeList;
+      }
+
+      const innerDataStr = outerData['data'] as string;
+      if (innerDataStr && typeof innerDataStr === 'string') {
+        this._jsonData = JSON.parse(innerDataStr) as Record<string, Object>;
+      } else if (innerDataStr && typeof innerDataStr === 'object') {
+        this._jsonData = innerDataStr as Record<string, Object>;
+      } else {
+        this._jsonData = outerData;
+      }
     } catch (err) {
       return;
     }
 
     if (!this._jsonData) {
       return;
-    }
-
-    this._actionType = (this._jsonData['actionType'] as number) ?? 0;
-    this._groupID = (this._jsonData['groupID'] as string) ?? '';
-    const inviteeList = this._jsonData['inviteeList'] as string[];
-    if (inviteeList) {
-      this._inviteeList = inviteeList;
     }
 
     this.setIsCallingSignal();
@@ -266,7 +279,7 @@ export class CallingMessageDataProvider {
 
   private setExcludeFromHistory(): void {
     this._excludeFromHistory = this._protocolType !== CallProtocolType.unknown &&
-      this._isExcludedFromLastMessage && this._isExcludedFromUnreadCount;
+    this._isExcludedFromLastMessage && this._isExcludedFromUnreadCount;
   }
 
   private setContent(): void {
