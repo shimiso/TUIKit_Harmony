@@ -18,7 +18,11 @@
     "dayjs": "^1.11.7",
     "pako": "^2.1.0",
     "@ohos/crypto-js": "^2.0.1",
-    "tuicallkit": "file:../../call"
+    "tuicallkit": "file:../../call",
+    "flutter_boost": "",
+    "@ohos/flutter_ohos": "",
+    "flutter_native_arm64_v8a": "",
+    "@ohos/flutter_module": ""
   }
 }
 

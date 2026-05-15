@@ -3,6 +3,7 @@
     "pages/SplashScreenPage",
     "pages/HomePage",
     "pages/DevLoginPage",
-    "pages/SettingsPage"
+    "pages/SettingsPage",
+    "pages/FlutterBoostHostPage"
   ]
 }
