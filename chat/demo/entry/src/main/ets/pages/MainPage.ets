@@ -6,6 +6,7 @@
  * 设置 / 消息 / 头像等入口仅展示 UI，点击逻辑后续补齐。
  */
 
+import router from '@ohos.router';
 import { WindowImmersiveHelper } from '../utils/WindowImmersiveHelper';
 import { DebugInfoPanel } from '../widget/DebugInfoPanel';
 import { HMFlutterManager } from '../manager/HMFlutterManager';
@@ -25,6 +26,7 @@ enum DrawerFlutterMenu {
 struct MainPage {
   @State showSideBar: boolean = false;
   @State statusBarInsetVp: number = 0;
+  @State navigationBarInsetVp: number = 0;
   @State nickname: string = '';
   @State avatarUrl: string = '';
 
@@ -32,11 +34,12 @@ struct MainPage {
   private sideBarOpenBeforeHide: boolean = false;
 
   aboutToAppear(): void {
-    void this.applyWindowAndInset();
+    void this.applyImmersiveLayout();
     this.refreshUserInfo();
   }
 
   onPageShow(): void {
+    void this.applyImmersiveLayout();
     this.refreshUserInfo();
     // 从 Flutter 等页面返回：若跳转前侧栏是展开的，则恢复
     if (this.sideBarOpenBeforeHide) {
@@ -45,20 +48,18 @@ struct MainPage {
     }
   }
 
-  aboutToDisappear(): void {
-    void WindowImmersiveHelper.restoreDefaultSystemBars(getContext(this));
-  }
-
   private refreshUserInfo(): void {
     const user = LoginUserInfo.getInstance();
     this.nickname = user.getNickname();
     this.avatarUrl = user.getAvatarUrl();
   }
 
-  private async applyWindowAndInset(): Promise<void> {
-    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
-    const inset = await WindowImmersiveHelper.getStatusBarInsetVp(getContext(this));
-    this.statusBarInsetVp = inset;
+  /** 沉浸式 + 读取系统栏 inset（SDK12 用 padding，勿用 safeAreaPadding 布尔写法） */
+  private async applyImmersiveLayout(): Promise<void> {
+    const ctx = getContext(this);
+    await WindowImmersiveHelper.enableImmersiveStatusBar(ctx);
+    this.statusBarInsetVp = await WindowImmersiveHelper.getStatusBarInsetVp(ctx);
+    this.navigationBarInsetVp = await WindowImmersiveHelper.getNavigationBarInsetVp(ctx);
   }
 
   /** 收起侧栏（点击蒙层等场景） */
@@ -81,9 +82,17 @@ struct MainPage {
    * 打开侧栏内 Flutter 页面。
    * 路由常量与跳转方式对齐 Android `FlutterManager.openFlutter` + `MainActivity.onMenuClick`。
    */
-  private openDrawerFlutterMenu(menu: DrawerFlutterMenu): void {
+  private openSettingsPage(): void {
+    this.closeSideBar();
+    router.pushUrl({ url: 'pages/settings/AppSettingsPage' }).catch((err: Error) => {
+      console.error(`open AppSettingsPage failed: ${JSON.stringify(err)}`);
+    });
+  }
+
+  private async openDrawerFlutterMenu(menu: DrawerFlutterMenu): Promise<void> {
     // 跳转前记录侧栏展开状态，不在此处收起，返回后由 onPageShow 恢复
     this.sideBarOpenBeforeHide = this.showSideBar;
+    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
     switch (menu) {
       case DrawerFlutterMenu.COUPON:
         HMFlutterManager.openFlutter(HMFlutterManager.FLUTTER_ROUTER_COUPON);
@@ -120,8 +129,10 @@ struct MainPage {
     }
     .width('100%')
     .height('100%')
-    .padding({ top: this.statusBarInsetVp })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .padding({
+      top: this.statusBarInsetVp,
+      bottom: this.navigationBarInsetVp,
+    })
   }
 
   /** 侧栏整体：背景 #F3F3F6 + 顶栏用户信息 + 四宫格菜单（毛玻璃卡片） */
@@ -166,6 +177,9 @@ struct MainPage {
         }
         .margin({ top: 4 })
         .alignItems(VerticalAlign.Center)
+        .onClick(() => {
+          this.openSettingsPage();
+        })
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
@@ -184,7 +198,7 @@ struct MainPage {
       .margin({ right: 14 })
       .alignItems(HorizontalAlign.Center)
       .onClick(() => {
-        this.openDrawerFlutterMenu(DrawerFlutterMenu.COUPON);
+        void this.openDrawerFlutterMenu(DrawerFlutterMenu.COUPON);
       })
 
       Column() {
@@ -246,7 +260,7 @@ struct MainPage {
     .justifyContent(FlexAlign.Center)
     .padding({ top: 6, bottom: 6 })
     .onClick(() => {
-      this.openDrawerFlutterMenu(menu);
+      void this.openDrawerFlutterMenu(menu);
     })
   }
 

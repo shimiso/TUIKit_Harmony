@@ -2,6 +2,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import router from '@ohos.router';
 import { FlutterBoostEntry } from 'flutter_boost';
 import { FlutterPage, FlutterView } from '@ohos/flutter_ohos';
+import { WindowImmersiveHelper } from '../utils/WindowImmersiveHelper';
 
 const TAG = 'FlutterBoostHostPage';
 const FLUTTER_DEST_NAME = 'flutter_boost_inner';
@@ -86,6 +87,7 @@ struct FlutterBoostHostPage {
     new FlutterBoostRouterOptions('', {}, null);
 
   aboutToAppear(): void {
+    void WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
     const pr = router.getParams() as Record<string, Object | string | undefined>;
     const uri = String(pr['uri'] ?? '');
     const uniqueRaw = pr['uniqueId'];
@@ -128,5 +130,6 @@ struct FlutterBoostHostPage {
     .hideTitleBar(true)
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

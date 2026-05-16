@@ -37,6 +37,8 @@ export class HMFlutterManager {
   static readonly FLUTTER_ROUTER_COUPON = '/mine/coupon';
   static readonly FLUTTER_ROUTER_ORDER_DETAIL = '/order/detail';
   static readonly FLUTTER_ROUTER_REPORT = '/report';
+  /** 内嵌 H5（隐私协议、用户协议等） */
+  static readonly FLUTTER_ROUTER_WEB_URL = '/web/url';
   static readonly FLUTTER_ROUTER_TRAVEL_RESOURCE_DETAIL = '/travel/resourceDetail';
   static readonly MINE_COUPON_DETAIL = '/mine/coupon/detail';
   /** 绑定手机号 */
