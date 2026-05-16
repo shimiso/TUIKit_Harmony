@@ -1,90 +1,171 @@
+/**
+ * 主页面示例：侧栏 + 主内容（路由名 MainPage 对应本文件）。
+ *
+ * struct 名 SideBarOverlayClickClose 仅为示例命名，与路由 pages/MainPage 无关；
+ * 路由在 main_pages.json 里登记的是文件路径。
+ *
+ * SideBarContainer：鸿蒙侧栏容器；第一个子组件是侧栏内容，第二个是主内容区域。
+ * Overlay 模式：侧栏浮在主内容之上。
+ */
+
+import { WindowImmersiveHelper } from '../utils/WindowImmersiveHelper';
+import { LoginUserInfo } from '../bean/LoginUserInfo';
+
 @Entry
 @Component
 struct SideBarOverlayClickClose {
-  // 控制侧边栏显隐
-  @State showSideBar: boolean = false
+  /** 控制侧栏展开/收起；变化会触发 build 重绘，带动画切换。 */
+  @State showSideBar: boolean = false;
+
+  /**
+   * 状态栏占位高度（单位 vp）。
+   * 窗口虽然是沉浸式（内容可画到屏幕边缘），但通过 padding-top 把 SideBarContainer 整体下移，
+   * 避免标题栏钻进状态栏下面。
+   */
+  @State statusBarInsetVp: number = 0;
+
+  /** LoginUserInfo 调试文本（进入页 / 点刷新时更新）。 */
+  @State loginUserDebugText: string = '';
+
+  /** 进入页面：异步读取窗口并设置沉浸式 + 顶部留白高度。 */
+  aboutToAppear(): void {
+    void this.applyWindowAndInset();
+    this.refreshLoginUserDebugDump(true);
+  }
+
+  /** 离开页面：恢复默认系统栏，避免影响后续打开的页面（如设置页）。 */
+  aboutToDisappear(): void {
+    void WindowImmersiveHelper.restoreDefaultSystemBars(getContext(this));
+  }
+
+  /**
+   * 分两步设置窗口：
+   * 1）enableImmersiveStatusBar —— 与 LoginPage 同类沉浸式；
+   * 2）getStatusBarInsetVp —— 读出系统状态栏区域高度，转成 vp 写入状态，
+   *    供外层 Column 做 padding-top。
+   */
+  private async applyWindowAndInset(): Promise<void> {
+    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
+    const inset = await WindowImmersiveHelper.getStatusBarInsetVp(getContext(this));
+    this.statusBarInsetVp = inset;
+  }
+
+  /** 从单例读取 LoginUserInfo 并刷新界面；可选同步打印到控制台（HiLog）。 */
+  private refreshLoginUserDebugDump(logToConsole: boolean): void {
+    const dump = LoginUserInfo.getInstance().debugDumpForTest();
+    this.loginUserDebugText = dump;
+    if (logToConsole) {
+      console.info(`[MainPage LoginUserInfo]\n${dump}`);
+    }
+  }
 
   build() {
-    // 1. 设置为 Overlay 悬浮覆盖模式
-    SideBarContainer(SideBarContainerType.Overlay) {
+    Column() {
+      SideBarContainer(SideBarContainerType.Overlay) {
 
-      // ==========================================
-      // 【子组件 1】侧边栏区域（会浮在主内容上方）
-      // ==========================================
-      Column() {
-        Text('侧边栏菜单').fontSize(20).fontWeight(FontWeight.Bold).margin(20)
-        Text('功能 1').fontSize(16).margin(10)
-        Text('功能 2').fontSize(16).margin(10)
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor('#FFFFFF')
-      // 给侧边栏右侧加一个轻微阴影，视觉上产生层级感
-      .shadow({ radius: 10, color: '#20000000', offsetX: 5 })
-
-      // ==========================================
-      // 【子组件 2】主内容区域（使用 Stack 层叠布局）
-      // ==========================================
-      Stack() {
-        // 核心主内容
+        // ---------- 子组件 1：侧栏面板 ----------
         Column() {
-          // 自定义顶栏
-          Row() {
-            Image($r('app.media.app_icon')) // 替换为你的面包线图标
-              .width(24)
-              .height(24)
-              .margin(16)
-              .onClick(() => {
-                animateTo({ duration: 250 }, () => {
-                  this.showSideBar = !this.showSideBar
-                })
-              })
-            Text('首页').fontSize(18).fontWeight(FontWeight.Medium)
-          }
-          .width('100%')
-          .height(56)
-          .backgroundColor('#F8F9FA')
-
-          // 页面正文
-          Column() {
-            Text('这是主内容。当侧边栏展开时，点击这里的任意空白处，侧边栏都会收起。')
-              .fontSize(14)
-              .fontColor('#666666')
-              .padding(30)
-              .textAlign(TextAlign.Center)
-          }
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
+          Text('侧边栏菜单').fontSize(20).fontWeight(FontWeight.Bold).margin(20)
+          Text('功能 1').fontSize(16).margin(10)
+          Text('功能 2').fontSize(16).margin(10)
         }
         .width('100%')
         .height('100%')
+        .backgroundColor('#FFFFFF')
+        .shadow({ radius: 10, color: '#20000000', offsetX: 5 })
 
-        // 【关键防御层】：当侧边栏显示时，在主内容上方盖一层蒙版
-        if (this.showSideBar) {
-          Column()
+        // ---------- 子组件 2：主区域（顶栏 + 正文 + 可选遮罩） ----------
+        Stack() {
+          Column() {
+            Row() {
+              Image($r('app.media.app_icon'))
+                .width(24)
+                .height(24)
+                .margin(16)
+                .onClick(() => {
+                  // animateTo：在 250ms 内平滑切换 showSideBar，触发侧栏动画
+                  animateTo({ duration: 250 }, () => {
+                    this.showSideBar = !this.showSideBar;
+                  })
+                })
+              Text('首页').fontSize(18).fontWeight(FontWeight.Medium)
+            }
             .width('100%')
-            .height('100%')
-            // 可以设为全透明 'rgba(0,0,0,0)'，或半透明的遮罩色 'rgba(0,0,0,0.2)'
-            .backgroundColor('rgba(0,0,0,0.15)')
-            .animation({ duration: 250 }) // 蒙版淡入淡出动画
-            .onClick(() => {
-              // 点击主内容区上的蒙版，关闭侧边栏
-              animateTo({ duration: 250 }, () => {
-                this.showSideBar = false
-              })
-            })
-        }
-      }
-      .width('100%')
-      .height('100%')
-      .alignContent(Alignment.TopStart)
+            .height(56)
+            .backgroundColor('#F8F9FA')
 
+            Column() {
+              Text('[调试] LoginUserInfo（登录态）')
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#131212')
+                .width('100%')
+                .padding({ left: 12, right: 12, top: 8, bottom: 4 })
+
+              Button('刷新显示（重新读单例）')
+                .fontSize(13)
+                .height(36)
+                .margin({ left: 12, right: 12, bottom: 8 })
+                .onClick(() => {
+                  this.refreshLoginUserDebugDump(true);
+                })
+
+              Scroll() {
+                Text(this.loginUserDebugText.length > 0 ? this.loginUserDebugText :
+                  '（暂无数据：请先完成 Flutter 登录或检查 MMKV）')
+                  .fontSize(11)
+                  .fontColor('#333333')
+                  .fontFamily('monospace')
+                  .lineHeight(16)
+                  .width('100%')
+              }
+              .scrollBar(BarState.Auto)
+              .edgeEffect(EdgeEffect.Spring)
+              .layoutWeight(1)
+              .width('100%')
+              .padding({ left: 12, right: 12, bottom: 12 })
+              .backgroundColor('#F5F6F8')
+              .borderRadius(8)
+              .margin({ left: 12, right: 12, bottom: 12 })
+            }
+            .layoutWeight(1)
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .height('100%')
+
+          // 侧栏打开时盖一层半透明蒙版，点击后收起侧栏（用户体验）
+          if (this.showSideBar) {
+            Column()
+              .width('100%')
+              .height('100%')
+              .backgroundColor('rgba(0,0,0,0.15)')
+              .animation({ duration: 250 })
+              .onClick(() => {
+                animateTo({ duration: 250 }, () => {
+                  this.showSideBar = false;
+                })
+              })
+          }
+        }
+        .width('100%')
+        .height('100%')
+        .alignContent(Alignment.TopStart)
+      }
+      .showSideBar(this.showSideBar) // 双向绑定侧栏显隐
+      .sideBarWidth(260) // 侧栏宽度 vp
+      .showControlButton(false) // 不显示系统默认「拖动条」按钮
+      .onChange((value: boolean) => {
+        // 手势或其它操作改变侧栏状态时同步到状态变量
+        this.showSideBar = value;
+      })
+      .layoutWeight(1) // 在 Column 内占满除 padding 以外的剩余高度
+      .width('100%')
     }
-    .showSideBar(this.showSideBar)
-    .sideBarWidth(260)              // 侧边栏宽度
-    .showControlButton(false)        // 隐藏原生按钮
-    .onChange((value: boolean) => {
-      this.showSideBar = value
-    })
+    .width('100%')
+    .height('100%')
+    .padding({ top: this.statusBarInsetVp })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
