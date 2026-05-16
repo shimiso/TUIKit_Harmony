@@ -343,6 +343,38 @@
     {
       "name": "relogin_button",
       "value": "Re-login"
+    },
+    {
+      "name": "login_phone_button",
+      "value": "手机号登录/注册"
+    },
+    {
+      "name": "login_agreement_prefix",
+      "value": "未注册手机号将自动注册。勾选即代表您阅读并同意"
+    },
+    {
+      "name": "login_agreement_and",
+      "value": "和"
+    },
+    {
+      "name": "login_user_agreement",
+      "value": "《用户协议》"
+    },
+    {
+      "name": "login_privacy_policy",
+      "value": "《隐私政策》"
+    },
+    {
+      "name": "login_operator_terms",
+      "value": "《运营商认证服务条款》"
+    },
+    {
+      "name": "login_agreement_required",
+      "value": "请先阅读并勾选用户协议"
+    },
+    {
+      "name": "login_third_party_coming_soon",
+      "value": "功能开发中，敬请期待"
     }
   ]
 }
