@@ -77,7 +77,7 @@ struct DevLoginPage {
       Button("跳转主页", { stateEffect: true, type: ButtonType.Normal })
         .margin({top:20})
         .onClick(() => {
-          router.pushUrl({ url: "pages/MainPage" });
+          router.pushUrl({ url: "pages/main/MainPage" });
         })
 
     }

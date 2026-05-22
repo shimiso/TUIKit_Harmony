@@ -292,7 +292,7 @@ struct LoginPage {
 
     await WindowImmersiveHelper.restoreDefaultSystemBars(getContext(this));
     try {
-      await router.replaceUrl({ url: 'pages/MainPage' });
+      await router.replaceUrl({ url: 'pages/main/MainPage' });
     } catch (err) {
       console.error(`LoginPage replaceUrl MainPage failed: ${JSON.stringify(err)}`);
     }

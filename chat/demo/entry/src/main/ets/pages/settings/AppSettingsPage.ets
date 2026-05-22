@@ -15,6 +15,8 @@ const PAGE_BG = '#F5F5F7';
 @Entry
 @Component
 struct AppSettingsPage {
+  @State statusBarInsetVp: number = 0;
+  @State navigationBarInsetVp: number = 0;
   @State nickname: string = '';
   @State avatarUrl: string = '';
   @State showDevelopMenu: boolean = false;
@@ -22,12 +24,13 @@ struct AppSettingsPage {
   @State cacheSizeText: string = '—';
 
   aboutToAppear(): void {
+    void this.applyImmersiveLayout();
     this.refreshUserInfo();
     this.showDevelopMenu = !AppSettingsPage.isReleaseBuild();
   }
 
   onPageShow(): void {
-    void WindowImmersiveHelper.applySettingsPageSystemBars(getContext(this));
+    void this.applyImmersiveLayout();
     this.refreshUserInfo();
     void this.loadUserProfileFromServer();
   }
@@ -51,12 +54,18 @@ struct AppSettingsPage {
       console.error(`AppSettingsPage loadUserProfile failed: ${JSON.stringify(err)}`);
     }
   }
-
+  /** 沉浸式 + 读取系统栏 inset（SDK12 用 padding，勿用 safeAreaPadding 布尔写法） */
+  private async applyImmersiveLayout(): Promise<void> {
+    const ctx = getContext(this);
+    await WindowImmersiveHelper.enableImmersiveStatusBar(ctx);
+    this.statusBarInsetVp = await WindowImmersiveHelper.getStatusBarInsetVp(ctx);
+    this.navigationBarInsetVp = await WindowImmersiveHelper.getNavigationBarInsetVp(ctx);
+  }
   /**
    * 用户信息（头像/昵称），对齐 `menu_user_header` → `FLUTTER_ROUTER_ACCOUNT_MANAGEMENT`。
    */
   private async openAccountManagementPage(): Promise<void> {
-    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
+    // await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
     HMFlutterManager.openFlutter(HMFlutterManager.FLUTTER_ROUTER_ACCOUNT_MANAGEMENT);
   }
 
@@ -64,7 +73,7 @@ struct AppSettingsPage {
    * 修改手机号，对齐 `menu_edit_phone` → `appPushNetworkConfig` + `FLUTTER_ROUTER_EDITPHONE`。
    */
   private async openEditPhonePage(): Promise<void> {
-    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
+    // await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
     HMFlutterManager.appPushNetworkConfig();
     HMFlutterManager.openFlutter(HMFlutterManager.FLUTTER_ROUTER_EDITPHONE);
   }
@@ -89,7 +98,7 @@ struct AppSettingsPage {
     }
     .width('100%')
     .height('100%')
-    .padding({left: 15, right: 15, top: 15})
+    .padding({left: 15, right: 15, top: this.statusBarInsetVp})
     .backgroundColor(PAGE_BG)
   }
 

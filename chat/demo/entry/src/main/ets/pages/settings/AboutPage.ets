@@ -15,11 +15,14 @@ const SERVICE_URL = 'https://static.histar.com/static/histar-wechat-mp/html/agre
 @Entry
 @Component
 struct AboutPage {
+  @State statusBarInsetVp: number = 0;
+  @State navigationBarInsetVp: number = 0;
   @State localVersionText: string = '';
   @State hasNewVersion: boolean = false;
   private versionListenerRemover: (() => void) | null = null;
 
   aboutToAppear(): void {
+    void this.applyImmersiveLayout();
     void this.loadLocalVersionText();
     this.versionListenerRemover = SystemManager.getInstance().addVersionListener(
       (_latest, hasNew: boolean) => {
@@ -29,8 +32,16 @@ struct AboutPage {
   }
 
   onPageShow(): void {
-    void WindowImmersiveHelper.applyAboutPageSystemBars(getContext(this));
+    void this.applyImmersiveLayout();
     void SystemManager.getInstance().refreshLatestVersion();
+  }
+
+  /** 沉浸式 + 读取系统栏 inset（SDK12 用 padding，勿用 safeAreaPadding 布尔写法） */
+  private async applyImmersiveLayout(): Promise<void> {
+    const ctx = getContext(this);
+    await WindowImmersiveHelper.enableImmersiveStatusBar(ctx);
+    this.statusBarInsetVp = await WindowImmersiveHelper.getStatusBarInsetVp(ctx);
+    this.navigationBarInsetVp = await WindowImmersiveHelper.getNavigationBarInsetVp(ctx);
   }
 
   aboutToDisappear(): void {
@@ -53,7 +64,7 @@ struct AboutPage {
 
   /** 打开 Flutter 前切沉浸式，避免非沉浸式 + Flutter SafeArea 造成顶部双留白 */
   private async openFlutterRoute(route: string, args?: Record<string, Object>): Promise<void> {
-    await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
+    // await WindowImmersiveHelper.enableImmersiveStatusBar(getContext(this));
     HMFlutterManager.openFlutter(route, args);
   }
 
@@ -82,6 +93,7 @@ struct AboutPage {
     }
     .width('100%')
     .height('100%')
+    .padding({top: this.statusBarInsetVp})
     .backgroundColor(PAGE_BG)
   }
 
@@ -107,7 +119,7 @@ struct AboutPage {
     .height(65)
     .padding({ left: 12, right: 12 })
     .alignItems(VerticalAlign.Center)
-    .backgroundColor('#FFFFFF')
+    // .backgroundColor('#FFFFFF')
   }
 
   @Builder

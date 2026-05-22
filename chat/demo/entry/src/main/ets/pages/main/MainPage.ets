@@ -3,14 +3,14 @@
  *
  * 侧栏布局对齐 Android `main_activty.xml`；
  * 已接入 Flutter 跳转：优惠券、订单、行程、收藏、常用旅客（见 {@link DrawerFlutterMenu}）。
- * 设置 / 消息 / 头像等入口仅展示 UI，点击逻辑后续补齐。
+ * 设置、消息中心已接入；头像等待后续补齐。
  */
 
 import router from '@ohos.router';
-import { WindowImmersiveHelper } from '../utils/WindowImmersiveHelper';
-import { DebugInfoPanel } from '../widget/DebugInfoPanel';
-import { HMFlutterManager } from '../manager/HMFlutterManager';
-import { LoginUserInfo } from '../bean/LoginUserInfo';
+import { WindowImmersiveHelper } from '../../utils/WindowImmersiveHelper';
+import { DebugInfoPanel } from '../../widget/DebugInfoPanel';
+import { HMFlutterManager } from '../../manager/HMFlutterManager';
+import { LoginUserInfo } from '../../bean/LoginUserInfo';
 
 /** 侧栏内已对接 Flutter 的菜单项（与 Android MainActivity.onMenuClick 分支一一对应） */
 enum DrawerFlutterMenu {
@@ -83,9 +83,19 @@ struct MainPage {
    * 路由常量与跳转方式对齐 Android `FlutterManager.openFlutter` + `MainActivity.onMenuClick`。
    */
   private openSettingsPage(): void {
-    this.closeSideBar();
+    // this.closeSideBar();
     router.pushUrl({ url: 'pages/settings/AppSettingsPage' }).catch((err: Error) => {
       console.error(`open AppSettingsPage failed: ${JSON.stringify(err)}`);
+    });
+  }
+
+  /**
+   * 侧栏「消息」入口 → 消息中心页。
+   * 对齐 Android 从主页进入 `MessageCenterActivity`。
+   */
+  private openMessageCenterPage(): void {
+    router.pushUrl({ url: 'pages/message/MessageCenterPage' }).catch((err: Error) => {
+      console.error(`open MessageCenterPage failed: ${JSON.stringify(err)}`);
     });
   }
 
@@ -130,7 +140,7 @@ struct MainPage {
     .width('100%')
     .height('100%')
     .padding({
-      top: this.statusBarInsetVp,
+      top: 0,//this.statusBarInsetVp,
       bottom: this.navigationBarInsetVp,
     })
   }
@@ -144,10 +154,13 @@ struct MainPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F3F3F6')
+    .padding({
+      top: this.statusBarInsetVp,
+    })
+    .backgroundColor('#E8E8EC')
   }
 
-  /** 顶栏：头像、昵称/设置文案、优惠券、消息（后两者仅优惠券可点） */
+  /** 顶栏：头像、昵称/设置文案、优惠券、消息 */
   @Builder
   DrawerHeaderBuilder() {
     Row() {
@@ -188,8 +201,8 @@ struct MainPage {
 
       Column() {
         Image($r('app.media.left_icon_coupon'))
-          .width(21)
-          .height(21)
+          .width(24)
+          .height(24)
         Text('优惠券')
           .fontSize(12)
           .fontColor('#555175')
@@ -212,6 +225,9 @@ struct MainPage {
       .width(36)
       .alignItems(HorizontalAlign.Center)
       .justifyContent(FlexAlign.Center)
+      .onClick(() => {
+        this.openMessageCenterPage();
+      })
     }
     .width('100%')
     .padding(10)
@@ -234,8 +250,8 @@ struct MainPage {
       this.DrawerGradientDividerBuilder()
       this.DrawerMenuGridItemBuilder('常用旅客', $r('app.media.left_icon_user'), DrawerFlutterMenu.TRAVELER)
     }
-    .width('100%')
-    .margin({ left: 15, right: 15, top: 10 })
+    // .width('100%')
+    .margin({ left: 10, right: 10, top: 10 })
     .padding({ top: 6, bottom: 6 })
     .borderRadius(10)
     .backgroundColor('#99FFFFFF')
@@ -281,7 +297,7 @@ struct MainPage {
     Stack() {
       Column() {
         Row() {
-          Image($r('app.media.app_icon'))
+          Image($r('app.media.ic_menu'))
             .width(24)
             .height(24)
             .margin(16)
@@ -294,7 +310,7 @@ struct MainPage {
         }
         .width('100%')
         .height(56)
-        .backgroundColor('#F8F9FA')
+        .backgroundColor('#E8E8EC')
 
         DebugInfoPanel()
       }
@@ -314,6 +330,10 @@ struct MainPage {
     }
     .width('100%')
     .height('100%')
+    .padding({
+      top: this.statusBarInsetVp
+    })
+    .backgroundColor('#E8E8EC')
     .alignContent(Alignment.TopStart)
   }
 }

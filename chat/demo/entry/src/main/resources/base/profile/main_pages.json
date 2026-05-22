@@ -2,7 +2,9 @@
   "src": [
     "pages/SplashScreenPage",
     "pages/HomePage",
-    "pages/MainPage",
+    "pages/main/MainPage",
+    "pages/message/MessageCenterPage",
+    "pages/message/MessageDetailPage",
     "pages/settings/AppSettingsPage",
     "pages/settings/AboutPage",
     "pages/settings/VersionInfoPage",
