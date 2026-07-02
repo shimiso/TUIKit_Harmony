@@ -1,4 +1,4 @@
-# Chat Demo - HarmonyOS IM Application
+# Chat Demo - HarmonyOS IM
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-API%209+-blue.svg)](https://developer.harmonyos.com/)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-orange.svg)](https://developer.harmonyos.com/cn/docs/documentation/doc-guides/arkts-get-started-0000001504769321)
